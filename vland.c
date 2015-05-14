@@ -30,14 +30,6 @@
  *   3. During operations, receive administrative
  *      configuration changes and apply to the hardware.
  *
- * @copyright Copyright (C) 2015 Hewlett-Packard Development Company, L.P.
- * All Rights Reserved.
- * The contents of this software are proprietary and confidential
- * to the Hewlett-Packard Development Company, L.P.  No part of this
- * program may be photocopied, reproduced, or translated into another
- * programming language without prior written consent of the
- * Hewlett-Packard Development Company, L.P.
- *
  ****************************************************************************/
 
 #include <errno.h>
