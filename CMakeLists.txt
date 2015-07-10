@@ -19,11 +19,7 @@ set (VLAND vland)
 project (${VLAND})
 
 # Rules to locate needed libraries
-
 include(FindPkgConfig)
-pkg_check_modules(SYSTEMD systemd)
-pkg_check_modules(CONFIG_YAML config-yaml)
-pkg_check_modules(HALONUTILS halonutils)
 pkg_check_modules(OVSCOMMON libovscommon)
 pkg_check_modules(OVSDB libovsdb)
 
@@ -37,11 +33,9 @@ set (SOURCES vland.c vland_ovsdb_if.c)
 # Rules to build vland
 add_executable (${VLAND} ${SOURCES})
 
-target_link_libraries (${VLAND} ${HALONUTILS_LIBRARIES} ${CONFIG_YAML_LIBRARIES} ${OVSCOMMON_LIBRARIES}
-			           ${OVSDB_LIBRARIES} ${OPENSSL_LIBRARIES} ${SYSTEMD_LIBRARIES}
-			           -lpthread -lrt)
-
+target_link_libraries (${VLAND} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES}
+                       -lpthread -lrt)
 
 # Rules to install vland binary in rootfs
 install(TARGETS ${VLAND}
-    RUNTIME DESTINATION bin)
+        RUNTIME DESTINATION bin)
