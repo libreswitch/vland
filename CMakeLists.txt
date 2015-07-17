@@ -27,6 +27,9 @@ include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}
                      ${OVSCOMMON_INCLUDE_DIRS}
 )
 
+# Define compile flags
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Werror")
+
 # Source files to build vland
 set (SOURCES vland.c vland_ovsdb_if.c)
 
