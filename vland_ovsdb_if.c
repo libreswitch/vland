@@ -614,6 +614,12 @@ handle_vlan_config(const struct ovsrec_vlan *row, struct vlan_data *vptr)
              vlan_oper_state_to_str(vptr->op_state),
              vlan_oper_state_reason_to_str(vptr->op_state_reason));
 
+    if (smap_get(&row->internal_usage, VLAN_INTERNAL_USAGE_L3PORT)) {
+        VLOG_DBG("%s: %s is used internally for L3 interface. Skip config",
+                 __FUNCTION__, row->name);
+        return 0;
+    }
+
     /* Update VLAN's op state & reason, and update h/w
      * config & status elements as appropriate. */
     calc_vlan_op_state_n_reason(vptr, &new_state, &new_reason);
@@ -794,6 +800,7 @@ vland_ovsdb_init(const char *db_path)
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_name);
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_id);
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_admin);
+    ovsdb_idl_add_column(idl, &ovsrec_vlan_col_internal_usage);
 
     /* These VLAN columns are write-only for VLAND. */
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_hw_vlan_config);
