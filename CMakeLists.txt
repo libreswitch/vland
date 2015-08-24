@@ -20,8 +20,8 @@ project (${VLAND})
 
 # Rules to locate needed libraries
 include(FindPkgConfig)
-pkg_check_modules(OVSCOMMON libovscommon)
-pkg_check_modules(OVSDB libovsdb)
+pkg_check_modules(OVSCOMMON REQUIRED libovscommon)
+pkg_check_modules(OVSDB REQUIRED libovsdb)
 
 include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}
                      ${OVSCOMMON_INCLUDE_DIRS}
