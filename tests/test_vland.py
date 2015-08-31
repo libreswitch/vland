@@ -90,7 +90,7 @@ class vlandTest( HalonTest ):
         if trunks != "":
             extra = extra + " trunks=" + trunks
         out = self.s1.cmd("/usr/bin/ovs-vsctl add-port br0 " + port + extra)
-        
+
     def delete_port(self, port):
         out = self.s1.cmd("/usr/bin/ovs-vsctl del-port br0 " + port)
 
@@ -390,4 +390,3 @@ class Test_vland:
         # cleanup
         self.test.delete_all_ports()
         self.test.delete_all_vlans()
-

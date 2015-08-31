@@ -371,7 +371,7 @@ update_port_cache(void)
 /**********************************************************************/
 /*                              VLANs                                 */
 /**********************************************************************/
-/* HALON_TODO: IDL should generate these enum-to-string conversions.  */
+/* OPS_TODO: IDL should generate these enum-to-string conversions.  */
 static char *
 vlan_mode_to_str(enum ovsrec_port_vlan_mode_e mode)
 {
@@ -782,7 +782,7 @@ vland_ovsdb_init(const char *db_path)
     /* Initialize IDL through a new connection to the DB. */
     idl = ovsdb_idl_create(db_path, &ovsrec_idl_class, false, true);
     idl_seqno = ovsdb_idl_get_seqno(idl);
-    ovsdb_idl_set_lock(idl, "halon_vland");
+    ovsdb_idl_set_lock(idl, "ops_vland");
     ovsdb_idl_verify_write_only(idl);
 
     /* Cache Open_vSwitch table. */

@@ -17,20 +17,20 @@
 
 /************************************************************************//**
  * @defgroup vland VLAN Daemon
- * This module is the Open Halon daemon that manages VLANs in an
- * Open Halon switch.
+ * This module is the OpenSwitch daemon that manages VLANs in an
+ * OpenSwitch switch.
  * @{
  *
  * @defgroup vland_public Public Interface
- * Public API for the Open Halon VLAN daemon (vland)
+ * Public API for the OpenSwitch VLAN daemon (vland)
  *
  * vland is responsible for managing and reporting status for VLANs
- * configured in an Open Halon switch.  In a tradition Open vSwitch,
+ * configured in an OpenSwitch switch.  In a tradition Open vSwitch,
  * VLANs are configured implicitly via PORT table's "tag" and "trunks"
  * columns.  There is no way to explicitly configure or control
  * individual VLAN behavior.
  *
- * To address this deficiency, Open Halon added a new VLAN table to the
+ * To address this deficiency, OpenSwitch added a new VLAN table to the
  * OVSDB schema so that VLANs are explicitly created by user configuration
  * and can be extended to include per VLAN-specific features in the future.
  *
@@ -55,7 +55,7 @@
  *
  * Public APIs
  *
- *     vland: Halon VLAN daemon
+ *     vland: OpenSwitch VLAN daemon
  *     usage: vland [OPTIONS] [DATABASE]
  *     where DATABASE is a socket on which ovsdb-server is listening
  *           (default: "unix:/var/run/openvswitch/db.sock").
@@ -121,7 +121,7 @@
  * @{
  *
  * @file
- * Header for Open Halon VLAN daemon
+ * Header for OpenSwitch VLAN daemon
  ***************************************************************************/
 
 /** @} end of group vland_public */

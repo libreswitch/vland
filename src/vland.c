@@ -19,7 +19,7 @@
  * @ingroup vland
  *
  * @file
- * Main source file for the implementation of the Open Halon VLAN daemon.
+ * Main source file for the implementation of the OpenSwitch VLAN daemon.
  *
  *   1. During start up, read Port and VLAN related configuration
  *      data and determine the operational status of the VLANs.
@@ -98,7 +98,7 @@ vland_exit(void)
 static void
 usage(void)
 {
-    printf("%s: Halon VLAN daemon\n"
+    printf("%s: OpenSwitch VLAN daemon\n"
            "usage: %s [OPTIONS] [DATABASE]\n"
            "where DATABASE is a socket on which ovsdb-server is listening\n"
            "      (default: \"unix:%s/db.sock\").\n",
@@ -226,7 +226,7 @@ main(int argc, char *argv[])
     /* Enable asynch log writes to disk. */
     vlog_enable_async();
 
-    VLOG_INFO_ONCE("%s (Halon VLAN Daemon) started", program_name);
+    VLOG_INFO_ONCE("%s (OpenSwitch VLAN Daemon) started", program_name);
 
     exiting = false;
     while (!exiting) {
@@ -245,7 +245,7 @@ main(int argc, char *argv[])
     vland_exit();
     unixctl_server_destroy(appctl);
 
-    VLOG_INFO("%s (Halon VLAN Daemon) exiting", program_name);
+    VLOG_INFO("%s (OpenSwitch VLAN Daemon) exiting", program_name);
 
     return 0;
 
