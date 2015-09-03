@@ -23,12 +23,12 @@ import os
 import sys
 import pytest
 import subprocess
-from halonvsi.docker import *
-from halonvsi.halon import *
+from opsvsi.docker import *
+from opsvsi.opsvsitest import *
 
 PORT_1="1"
 
-class vlandTest( HalonTest ):
+class vlandTest( OpsVsiTest ):
 
     def setupNet(self):
         # if you override this function, make sure to
@@ -39,9 +39,9 @@ class vlandTest( HalonTest ):
             hopts=self.getHostOpts(),
             sopts=self.getSwitchOpts())
         self.net = Mininet(topo=topo,
-            switch=HalonSwitch,
+            switch=VsiOpenSwitch,
             host=Host,
-            link=HalonLink, controller=None,
+            link=OpsVsiLink, controller=None,
             build=True)
         self.s1 = self.net.switches[0]
 
