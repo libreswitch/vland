@@ -15,7 +15,7 @@
 
 cmake_minimum_required (VERSION 2.8)
 
-set (VLAND vland)
+set (VLAND ops-vland)
 project (${VLAND})
 set (SRC_DIR src)
 set (INCL_DIR include)
@@ -32,15 +32,15 @@ include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
 # Define compile flags
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Werror")
 
-# Source files to build vland
+# Source files to build ops-vland
 set (SOURCES ${SRC_DIR}/vland.c ${SRC_DIR}/vland_ovsdb_if.c)
 
-# Rules to build vland
+# Rules to build ops-vland
 add_executable (${VLAND} ${SOURCES})
 
 target_link_libraries (${VLAND} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES}
                        -lpthread -lrt)
 
-# Rules to install vland binary in rootfs
+# Rules to install ops-vland binary in rootfs
 install(TARGETS ${VLAND}
         RUNTIME DESTINATION bin)
