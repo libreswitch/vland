@@ -314,7 +314,8 @@ update_port_cache(void)
     /* Add new ports. */
     SHASH_FOR_EACH(sh_node, &sh_idl_ports) {
         struct port_data *new_port = shash_find_data(&all_ports, sh_node->name);
-        if (!new_port) {
+        /* note: "bridge_normal" is not really a port, ignore it */
+        if (!new_port && strcmp(sh_node->name, DEFAULT_BRIDGE_NAME) != 0) {
             VLOG_DBG("Found an added port %s", sh_node->name);
             add_new_port(sh_node->data);
         }
