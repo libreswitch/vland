@@ -96,7 +96,7 @@
  *
  *  The following columns are READ by vland:
  *
- *      Open_vSwitch:cur_cfg
+ *      System:cur_cfg
  *      Port:name
  *      Port:vlan_mode
  *      Port:tag

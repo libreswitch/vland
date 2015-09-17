@@ -786,9 +786,9 @@ vland_ovsdb_init(const char *db_path)
     ovsdb_idl_set_lock(idl, "ops_vland");
     ovsdb_idl_verify_write_only(idl);
 
-    /* Cache Open_vSwitch table. */
-    ovsdb_idl_add_table(idl, &ovsrec_table_open_vswitch);
-    ovsdb_idl_add_column(idl, &ovsrec_open_vswitch_col_cur_cfg);
+    /* Cache System table. */
+    ovsdb_idl_add_table(idl, &ovsrec_table_system);
+    ovsdb_idl_add_column(idl, &ovsrec_system_col_cur_cfg);
 
     /* Cache Port and VLAN tables and columns. */
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
@@ -858,19 +858,19 @@ vland_reconfigure(void)
 static inline void
 vland_chk_for_system_configured(void)
 {
-    const struct ovsrec_open_vswitch *ovs_vsw = NULL;
+    const struct ovsrec_system *sys = NULL;
 
     if (system_configured) {
         /* Nothing to do if we're already configured. */
         return;
     }
 
-    ovs_vsw = ovsrec_open_vswitch_first(idl);
+    sys = ovsrec_system_first(idl);
 
-    if (ovs_vsw && ovs_vsw->cur_cfg > (int64_t) 0) {
+    if (sys && sys->cur_cfg > (int64_t) 0) {
         system_configured = true;
         VLOG_INFO("System is now configured (cur_cfg=%d).",
-                  (int)ovs_vsw->cur_cfg);
+                  (int)sys->cur_cfg);
     }
 
 } /* vland_chk_for_system_configured */
@@ -896,7 +896,7 @@ vland_run(void)
 
     /* Update the local configuration and push any changes to the DB.
      * Only do this after the system has been configured by CFGD, i.e.
-     * table Open_vSwitch "cur_cfg" > 1. */
+     * table System "cur_cfg" > 1. */
     vland_chk_for_system_configured();
     if (system_configured) {
         txn = ovsdb_idl_txn_create(idl);
