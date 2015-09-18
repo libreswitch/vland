@@ -16,7 +16,7 @@
  */
 
 /*************************************************************************//**
- * @ingroup vland
+ * @ingroup ops-vland
  *
  * @file
  * Main source file for the implementation of the OpenSwitch VLAN daemon.
@@ -60,9 +60,9 @@
 
 #include "vland.h"
 
-VLOG_DEFINE_THIS_MODULE(vland);
+VLOG_DEFINE_THIS_MODULE(ops_vland);
 
-#define VLAND_PID_FILE        "/var/run/openvswitch/vland.pid"
+#define VLAND_PID_FILE        "/var/run/openvswitch/ops-vland.pid"
 
 static void
 vland_unixctl_dump(struct unixctl_conn *conn, int argc OVS_UNUSED,
@@ -84,7 +84,7 @@ vland_init(const char *db_path)
     vland_ovsdb_init(db_path);
 
     /* Register ovs-appctl commands for this daemon. */
-    unixctl_command_register("vland/dump", "", 0, 0, vland_unixctl_dump, NULL);
+    unixctl_command_register("ops-vland/dump", "", 0, 0, vland_unixctl_dump, NULL);
 
 } /* vland_init */
 
