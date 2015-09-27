@@ -54,7 +54,7 @@
 #include <openvswitch/vconn.h>
 #include <openvswitch/vlog.h>
 #include <vswitch-idl.h>
-#include <openhalon-idl.h>
+#include <openswitch-idl.h>
 #include <hash.h>
 #include <shash.h>
 

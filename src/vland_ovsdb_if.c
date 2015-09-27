@@ -31,7 +31,7 @@
 
 #include <dynamic-string.h>
 #include <vswitch-idl.h>
-#include <openhalon-idl.h>
+#include <openswitch-idl.h>
 #include <openvswitch/vlog.h>
 #include <hash.h>
 #include <shash.h>
