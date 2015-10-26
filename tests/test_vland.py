@@ -47,7 +47,7 @@ class vlandTest( OpsVsiTest ):
 
     def get_ports(self):
         ports = []
-        out = self.s1.cmd("/usr/bin/ovs-vsctl list-ports br0")
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl list-ports br0")
         names = out.split("\n")
         for name in names:
             name = name.strip()
@@ -56,7 +56,7 @@ class vlandTest( OpsVsiTest ):
 
     def get_vlans(self):
         vlans = []
-        out = self.s1.cmd("/usr/bin/ovs-vsctl list-vlans br0")
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl list-vlans br0")
         names = out.split("\n")
         for name in names:
             name = name.strip()
@@ -64,11 +64,11 @@ class vlandTest( OpsVsiTest ):
         return vlans
 
     def add_vlan(self, vlan_id):
-        out = self.s1.cmd("/usr/bin/ovs-vsctl add-vlan br0 " + vlan_id + \
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl add-vlan br0 " + vlan_id + \
                 " name=" + vlan_id)
 
     def delete_vlan(self, vlan_id):
-        out = self.s1.cmd("/usr/bin/ovs-vsctl del-vlan br0 " + vlan_id)
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl del-vlan br0 " + vlan_id)
 
     def delete_all_vlans(self):
         vlans = self.get_vlans()
@@ -76,7 +76,7 @@ class vlandTest( OpsVsiTest ):
             self.delete_vlan(vlan)
 
     def set_vlan_admin(self, vlan_id, state):
-        out = self.s1.cmd("/usr/bin/ovs-vsctl set vlan " + vlan_id + \
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl set vlan " + vlan_id + \
                 " admin=" + state)
 
     def add_port(self, port, vlan_mode="", tag="", trunks=""):
@@ -89,10 +89,10 @@ class vlandTest( OpsVsiTest ):
             extra = extra + " tag=" + tag
         if trunks != "":
             extra = extra + " trunks=" + trunks
-        out = self.s1.cmd("/usr/bin/ovs-vsctl add-port br0 " + port + extra)
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl add-port br0 " + port + extra)
 
     def delete_port(self, port):
-        out = self.s1.cmd("/usr/bin/ovs-vsctl del-port br0 " + port)
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl del-port br0 " + port)
 
     def delete_all_ports(self):
         ports = self.get_ports()
@@ -100,16 +100,16 @@ class vlandTest( OpsVsiTest ):
             self.delete_port(port)
 
     def set_port_vlan(self, port, vlan):
-        out = self.s1.cmd("/usr/bin/ovs-vsctl set port " + port + " tag=" \
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl set port " + port + " tag=" \
                 + vlan)
 
     def set_port_vlans(self, port, vlans):
-        out = self.s1.cmd("/usr/bin/ovs-vsctl set port " + port + " trunks=" \
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl set port " + port + " trunks=" \
                 + vlans)
 
     def get_vlan(self, vlan_id):
         result = dict()
-        out = self.s1.cmd("/usr/bin/ovs-vsctl list vlan " + vlan_id)
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl list vlan " + vlan_id)
         lines = out.split("\n")
         for line in lines:
             if line == "":
@@ -122,7 +122,7 @@ class vlandTest( OpsVsiTest ):
 
     def get_port(self, port):
         result = dict()
-        out = self.s1.cmd("/usr/bin/ovs-vsctl list port " + port)
+        out = self.s1.ovscmd("/usr/bin/ovs-vsctl list port " + port)
         lines = out.split("\n")
         for line in lines:
             if line == "":
@@ -146,13 +146,13 @@ class Test_vland:
 
     def setup_class(cls):
         # Create initial bridge "br0" to hold ports
-        Test_vland.test.s1.cmd("/usr/bin/ovs-vsctl add-br br0")
+        Test_vland.test.s1.ovscmd("/usr/bin/ovs-vsctl add-br br0")
 
     def teardown_class(cls):
         # Delete all ports, vlans, and bridge "br0"
         Test_vland.test.delete_all_ports()
         Test_vland.test.delete_all_vlans()
-        Test_vland.test.s1.cmd("/usr/bin/ovs-vsctl del-br br0")
+        Test_vland.test.s1.ovscmd("/usr/bin/ovs-vsctl del-br br0")
         # Stop the Docker containers, and
         # mininet topology
         Test_vland.test.net.stop()
@@ -235,7 +235,7 @@ class Test_vland:
 
         # verify ok
         vlan_data = self.test.get_vlan("200")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
 
         # clean up
         self.test.delete_all_vlans()
@@ -322,7 +322,7 @@ class Test_vland:
 
         # do second verification
         vlan_data = self.test.get_vlan("200")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
 
         # set admin=down for vlan 200
         self.test.set_vlan_admin("200", "down")
@@ -370,22 +370,22 @@ class Test_vland:
 
         # verification
         vlan_data = self.test.get_vlan("100")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
         vlan_data = self.test.get_vlan("200")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
         vlan_data = self.test.get_vlan("300")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
 
         # remove vlan 200 from port
         self.test.set_port_vlans(PORT_1, "100,300")
 
         # verification
         vlan_data = self.test.get_vlan("100")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
         vlan_data = self.test.get_vlan("200")
         self._verify_data(vlan_data, '{}', "down", "no_member_port")
         vlan_data = self.test.get_vlan("300")
-        self._verify_data(vlan_data, '{enable="true"}', "up", "ok")
+        self._verify_data(vlan_data, '{enable=true}', "up", "ok")
 
         # cleanup
         self.test.delete_all_ports()
