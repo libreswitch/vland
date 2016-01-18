@@ -41,6 +41,7 @@
 VLOG_DEFINE_THIS_MODULE(vland_ovsdb_if);
 
 #define VALID_VID(x)  ((x)>0 && (x)<4095)
+#define DEFAULT_VID  (1)
 
 /**************************************************************************//**
  * port_data struct that contains PORT table information for a single port.
@@ -76,6 +77,8 @@ struct ovsdb_idl *idl;
 static unsigned int idl_seqno;
 
 static int system_configured = false;
+
+static int default_vlan_created  = false;
 
 /* Mapping of all the ports. */
 static struct shash all_ports = SHASH_INITIALIZER(&all_ports);
@@ -784,7 +787,6 @@ vland_ovsdb_init(const char *db_path)
     idl = ovsdb_idl_create(db_path, &ovsrec_idl_class, false, true);
     idl_seqno = ovsdb_idl_get_seqno(idl);
     ovsdb_idl_set_lock(idl, "ops_vland");
-    ovsdb_idl_verify_write_only(idl);
 
     /* Cache System table. */
     ovsdb_idl_add_table(idl, &ovsrec_table_system);
@@ -798,10 +800,10 @@ vland_ovsdb_init(const char *db_path)
     ovsdb_idl_add_column(idl, &ovsrec_port_col_trunks);
 
     ovsdb_idl_add_table(idl, &ovsrec_table_vlan);
+    ovsdb_idl_add_column(idl, &ovsrec_vlan_col_internal_usage);
+    ovsdb_idl_add_column(idl, &ovsrec_vlan_col_admin);
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_name);
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_id);
-    ovsdb_idl_add_column(idl, &ovsrec_vlan_col_admin);
-    ovsdb_idl_add_column(idl, &ovsrec_vlan_col_internal_usage);
 
     /* These VLAN columns are write-only for VLAND. */
     ovsdb_idl_add_column(idl, &ovsrec_vlan_col_hw_vlan_config);
@@ -816,6 +818,14 @@ vland_ovsdb_init(const char *db_path)
     /* Initialize global VLANs bitmap. */
     all_vlans_bitmap = bitmap_allocate(VLAN_BITMAP_SIZE);
 
+    /* These BRIDGE columns are write-only for VLAND. */
+    ovsdb_idl_add_table(idl, &ovsrec_table_bridge);
+
+    ovsdb_idl_add_column(idl, &ovsrec_bridge_col_name);
+
+    ovsdb_idl_add_column(idl, &ovsrec_bridge_col_vlans);
+    ovsdb_idl_omit_alert(idl, &ovsrec_bridge_col_vlans);
+
 } /* vland_ovsdb_init */
 
 void
@@ -826,6 +836,85 @@ vland_ovsdb_exit(void)
     ovsdb_idl_destroy(idl);
 
 } /* vland_ovsdb_exit */
+
+static int
+create_default_vlan()
+{
+    const struct ovsrec_vlan *vlan_row = NULL;
+    const struct ovsrec_bridge *bridge_row = NULL;
+    const struct ovsrec_bridge *default_bridge_row = NULL;
+    struct ovsdb_idl_txn *status_txn;
+    enum ovsdb_idl_txn_status status;
+    bool vlan_found = false;
+    struct ovsrec_vlan **vlans = NULL;
+    int i = 0;
+    int vlan_id = DEFAULT_VID ;
+    static char vlan_name[32] = { 0 };
+
+    snprintf(vlan_name, sizeof(vlan_name), "%s%d", "DEFAULT_VLAN_", vlan_id);
+    status_txn = ovsdb_idl_txn_create(idl);
+
+    vlan_row = ovsrec_vlan_first(idl);
+    if (vlan_row != NULL) {
+        OVSREC_VLAN_FOR_EACH(vlan_row, idl) {
+            if (vlan_row->id == vlan_id) {
+                vlan_found = true;
+                VLOG_DBG("%s already created. skipping", vlan_name);
+                ovsdb_idl_txn_destroy(status_txn);
+                default_vlan_created = true;
+                return false;
+            }
+        }
+    }
+
+    if (!vlan_found) {
+        vlan_row = ovsrec_vlan_insert(status_txn);
+        ovsrec_vlan_set_id(vlan_row, vlan_id);
+        ovsrec_vlan_set_name(vlan_row, vlan_name);
+        ovsrec_vlan_set_admin(vlan_row, OVSREC_VLAN_ADMIN_UP);
+        ovsrec_vlan_set_oper_state(vlan_row, OVSREC_VLAN_OPER_STATE_DOWN);
+        ovsrec_vlan_set_oper_state_reason(vlan_row, OVSREC_VLAN_OPER_STATE_REASON_ADMIN_DOWN);
+
+        OVSREC_BRIDGE_FOR_EACH(bridge_row, idl) {
+            if (strcmp(bridge_row->name, DEFAULT_BRIDGE_NAME) == 0) {
+                default_bridge_row = (struct ovsrec_bridge*)bridge_row;
+                break;
+            }
+        }
+
+        if (default_bridge_row == NULL) {
+            VLOG_ERR("Couldn't find default bridge, failed to create %s. Function=%s, Line=%d",
+                      vlan_name, __func__, __LINE__);
+            ovsdb_idl_txn_destroy(status_txn);
+            return false;
+        }
+
+        vlans = xmalloc(sizeof(*default_bridge_row->vlans) *
+            (default_bridge_row->n_vlans + 1));
+
+        for (i = 0; i < default_bridge_row->n_vlans; i++) {
+            vlans[i] = default_bridge_row->vlans[i];
+        }
+
+        vlans[default_bridge_row->n_vlans] = CONST_CAST(struct ovsrec_vlan*,vlan_row);
+        ovsrec_bridge_set_vlans(default_bridge_row, vlans,
+            default_bridge_row->n_vlans + 1);
+
+        free(vlans);
+    }
+
+    status = ovsdb_idl_txn_commit_block(status_txn);
+    if(status != TXN_SUCCESS && status != TXN_UNCHANGED) {
+        VLOG_ERR("Creating default VLAN failed, status = %s\n",
+                 ovsdb_idl_txn_status_to_string(status));
+    } else {
+        VLOG_DBG("Creating default VLAN, success");
+        default_vlan_created = true;
+    }
+
+    ovsdb_idl_txn_destroy(status_txn);
+    return true;
+}
 
 static int
 vland_reconfigure(void)
@@ -899,6 +988,10 @@ vland_run(void)
      * table System "cur_cfg" > 1. */
     vland_chk_for_system_configured();
     if (system_configured) {
+        if (!default_vlan_created) {
+            create_default_vlan();
+        }
+
         txn = ovsdb_idl_txn_create(idl);
         if (vland_reconfigure()) {
             /* Some OVSDB write needs to happen. */
