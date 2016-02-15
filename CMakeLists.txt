@@ -41,6 +41,9 @@ add_executable (${VLAND} ${SOURCES})
 target_link_libraries (${VLAND} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES}
                        -lpthread -lrt)
 
+# Build ops-intfd cli shared libraries.
+add_subdirectory(src/cli)
+
 # Rules to install ops-vland binary in rootfs
 install(TARGETS ${VLAND}
         RUNTIME DESTINATION bin)
