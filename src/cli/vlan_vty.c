@@ -545,12 +545,14 @@ DEFUN  (cli_vlan_int_range_add,
  |      CMD_OVSDB_FAILURE - DB failure.
  ------------------------------------------------------------------------------
  */
-static int vlan_int_range_del()
+static int vlan_int_range_del(uint16_t min_vlan_in,
+                              uint16_t max_vlan_in)
 {
     const struct ovsrec_system *const_row = NULL;
     struct smap other_config;
     char min_vlan[VLAN_ID_LEN], max_vlan[VLAN_ID_LEN];
     struct ovsdb_idl_txn *status_txn = NULL;
+    uint16_t min_vlan_db, max_vlan_db;
 
     status_txn = cli_do_config_start();
 
@@ -573,23 +575,40 @@ static int vlan_int_range_del()
      * symantics and avoid GCC warnigns */
     smap_clone(&other_config, &const_row->other_config);
 
-    snprintf(min_vlan, VLAN_ID_LEN, "%d",
-                DFLT_SYSTEM_OTHER_CONFIG_MAP_MIN_INTERNAL_VLAN_ID);
+    min_vlan_db  = smap_get_int(&const_row->other_config,
+                                SYSTEM_OTHER_CONFIG_MAP_MIN_INTERNAL_VLAN,
+                                INTERNAL_VLAN_ID_INVALID);
 
-    smap_replace(&other_config,
-                    SYSTEM_OTHER_CONFIG_MAP_MIN_INTERNAL_VLAN,
-                    min_vlan);
+    max_vlan_db  = smap_get_int(&const_row->other_config,
+                                SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN,
+                                INTERNAL_VLAN_ID_INVALID);
 
-    snprintf(max_vlan, VLAN_ID_LEN, "%d",
-                DFLT_SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN_ID);
+    /* Checking if the input VLAN range is same as the one configured, or
+     * there is no range provided as an input */
+    if((min_vlan_db == min_vlan_in && max_vlan_db == max_vlan_in) ||
+       (min_vlan_in == 0 && max_vlan_in == 0)) {
+        snprintf(min_vlan, VLAN_ID_LEN, "%d",
+                 DFLT_SYSTEM_OTHER_CONFIG_MAP_MIN_INTERNAL_VLAN_ID);
 
-    smap_replace(&other_config,
-                    SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN,
-                    max_vlan);
+        smap_replace(&other_config,
+                     SYSTEM_OTHER_CONFIG_MAP_MIN_INTERNAL_VLAN,
+                     min_vlan);
 
-    smap_replace(&other_config,
-                    SYSTEM_OTHER_CONFIG_MAP_INTERNAL_VLAN_POLICY,
-                    SYSTEM_OTHER_CONFIG_MAP_INTERNAL_VLAN_POLICY_ASCENDING_DEFAULT);
+        snprintf(max_vlan, VLAN_ID_LEN, "%d",
+                 DFLT_SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN_ID);
+
+        smap_replace(&other_config,
+                     SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN,
+                     max_vlan);
+
+        smap_replace(&other_config,
+               SYSTEM_OTHER_CONFIG_MAP_INTERNAL_VLAN_POLICY,
+               SYSTEM_OTHER_CONFIG_MAP_INTERNAL_VLAN_POLICY_ASCENDING_DEFAULT);
+    } else {
+        vty_out(vty, "Invalid internal VLAN range specified.Configured "
+                     "internal VLAN range: %d-%d%s",
+                      min_vlan_db, max_vlan_db, VTY_NEWLINE);
+    }
 
     ovsrec_system_set_other_config(const_row, &other_config);
 
@@ -611,7 +630,7 @@ DEFUN  (cli_vlan_int_range_del,
         VLAN_INT_STR
         VLAN_INT_RANGE_STR)
 {
-    return vlan_int_range_del();
+    return vlan_int_range_del(0, 0);
 }
 
 /* Deleting vlan internal configuration. Default config takes effect */
@@ -627,7 +646,19 @@ DEFUN  (cli_vlan_int_range_del_arg,
         "Assign VLANs in ascending order (Default)\n"
         "Assign VLANs in descending order\n")
 {
-    return vlan_int_range_del();
+    uint16_t min_vlan, max_vlan;
+
+    min_vlan = atoi(argv[0]);
+    max_vlan = atoi(argv[1]);
+
+    /* invalid range, log an error and notify user (in CLI) */
+    if (max_vlan < min_vlan) {
+        vty_out(vty, "Invalid VLAN range. End VLAN must be greater or equal "
+                      "to start VLAN.%s", VTY_NEWLINE);
+        return CMD_SUCCESS;
+    }
+
+    return vlan_int_range_del(min_vlan, max_vlan);
 }
 
 
