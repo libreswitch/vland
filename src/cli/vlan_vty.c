@@ -2756,11 +2756,23 @@ vlan_ovsdb_init()
  */
 void cli_pre_init(void)
 {
+    vtysh_ret_val retval = e_vtysh_error;
+
     install_node (&vlan_node, NULL);
     install_node (&vlan_interface_node, NULL);
     vtysh_install_default (VLAN_NODE);
     vtysh_install_default (VLAN_INTERFACE_NODE);
     vlan_ovsdb_init();
+
+    retval = install_show_run_config_context(e_vtysh_vlan_context,
+                                         &vtysh_vlan_context_clientcallback,
+                                         NULL, NULL);
+    if(e_vtysh_ok != retval)
+    {
+        vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
+                              "Unable to add vlan context callback");
+        assert(0);
+    }
     return;
 }
 
@@ -2768,6 +2780,8 @@ void cli_pre_init(void)
  */
 void cli_post_init(void)
 {
+    vtysh_ret_val retval = e_vtysh_error;
+
     install_element (CONFIG_NODE, &no_vtysh_interface_vlan_cmd);
     install_element (VLAN_INTERFACE_NODE, &vtysh_exit_interface_cmd);
     install_element (VLAN_INTERFACE_NODE, &vtysh_end_all_cmd);
@@ -2806,5 +2820,17 @@ void cli_post_init(void)
     install_element(LINK_AGGREGATION_NODE, &cli_lag_no_vlan_trunk_native_tag_cmd);
 
     vtysh_init_vlan_context_clients();
+
+    retval = install_show_run_config_subcontext(e_vtysh_interface_context,
+                                     e_vtysh_interface_context_vlan,
+                                     &vtysh_intf_context_vlan_clientcallback,
+                                     NULL, NULL);
+    if(e_vtysh_ok != retval)
+    {
+        vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
+                           "Interface context unable to add vlan client callback");
+        assert(0);
+    }
+
     return;
 }

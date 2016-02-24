@@ -32,6 +32,7 @@
 #include "openswitch-idl.h"
 #include "vtysh/vtysh_ovsdb_if.h"
 #include "vtysh/vtysh_ovsdb_config.h"
+#include "vtysh/utils/vlan_vtysh_utils.h"
 #include "vtysh_ovsdb_vlan_context.h"
 #include "vlan_vty.h"
 
@@ -41,7 +42,7 @@ char vlancontextclientname[] = "vtysh_vlan_context_clientcallback";
 | Responsibility : client callback routine
 | Parameters :
 |     void *p_private: void type object typecast to required
-| Return : void
+| Return : e_vtysh_ok on success else e_vtysh_error
 -----------------------------------------------------------------------------*/
 
 vtysh_ret_val
@@ -94,6 +95,108 @@ vtysh_vlan_context_clientcallback(void *p_private)
   shash_destroy(&sorted_vlan_id);
   free(nodes);
 
+  return e_vtysh_ok;
+}
+
+/*-----------------------------------------------------------------------------
+| Function : vtysh_ovsdb_intftable_parse_vlan
+| Responsibility : Used for VLAN related config
+| Parameters :
+|     const char *if_name           : Name of interface
+|     vtysh_ovsdb_cbmsg_ptr p_msg   : Used for idl operations
+| Return : e_vtysh_ok on success else e_vtysh_error
+-----------------------------------------------------------------------------*/
+static vtysh_ret_val
+vtysh_ovsdb_intftable_parse_vlan(const char *if_name,
+                                 vtysh_ovsdb_cbmsg_ptr p_msg)
+{
+  const struct ovsrec_port *port_row;
+  int i;
+
+  port_row = port_lookup(if_name, p_msg->idl);
+  if (port_row == NULL)
+  {
+    return e_vtysh_ok;
+  }
+  if (port_row->vlan_mode == NULL)
+  {
+    return e_vtysh_ok;
+  }
+  else if (strcmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS) == 0)
+  {
+    if(port_row->n_tag == 1)
+    {
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "", "vlan access ",
+                            *port_row->tag);
+    }
+  }
+  else if (strcmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_TRUNK) == 0)
+  {
+    for (i = 0; i < port_row->n_trunks; i++)
+    {
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "", "vlan trunk allowed ",
+                            port_row->trunks[i]);
+    }
+  }
+  else if (strcmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_UNTAGGED)
+           == 0)
+  {
+    if (port_row->n_tag == 1)
+    {
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "", "vlan trunk native ",
+                            *port_row->tag);
+    }
+    for (i = 0; i < port_row->n_trunks; i++)
+    {
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "", "vlan trunk allowed ",
+                            port_row->trunks[i]);
+    }
+  }
+  else if (strcmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_TAGGED)
+           == 0)
+  {
+    if (port_row->n_tag == 1)
+    {
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "", "vlan trunk native ",
+                            *port_row->tag);
+    }
+    vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "vlan trunk native tag");
+    for (i = 0; i < port_row->n_trunks; i++)
+    {
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "", "vlan trunk allowed ",
+                            port_row->trunks[i]);
+    }
+  }
+
+  return e_vtysh_ok;
+}
+
+/*-----------------------------------------------------------------------------
+| Function : vtysh_intf_context_vlan_clientcallback
+| Responsibility : Verify if interface is VLAN and parse vlan related config
+| Parameters :
+|     void *p_private: void type object typecast to required
+| Return : e_vtysh_ok on success else e_vtysh_error
+-----------------------------------------------------------------------------*/
+vtysh_ret_val
+vtysh_intf_context_vlan_clientcallback(void *p_private)
+{
+  const struct ovsrec_port *port_row;
+  vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
+  const struct ovsrec_interface *ifrow = NULL;
+
+  ifrow = (struct ovsrec_interface *)p_msg->feature_row;
+  port_row = port_lookup(ifrow->name, p_msg->idl);
+  if (!port_row) {
+    return e_vtysh_ok;
+  }
+  if (!check_iface_in_vrf(ifrow->name)) {
+    if (!p_msg->disp_header_cfg) {
+      vtysh_ovsdb_cli_print(p_msg, "interface %s", ifrow->name);
+    }
+    vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no routing");
+    vtysh_ovsdb_intftable_parse_vlan(ifrow->name, p_msg);
+  }
   return e_vtysh_ok;
 }
 

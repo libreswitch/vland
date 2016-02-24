@@ -28,4 +28,5 @@
 
 int vtysh_init_vlan_context_clients();
 vtysh_ret_val vtysh_vlan_context_clientcallback(void *p_private);
+vtysh_ret_val vtysh_intf_context_vlan_clientcallback(void *p_private);
 #endif /* VTYSH_OVSDB_VLAN_CONTEXT_H */
