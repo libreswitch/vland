@@ -1179,33 +1179,34 @@ DEFUN(cli_intf_no_vlan_access_val,
 
 DEFUN(cli_intf_vlan_trunk_allowed,
     cli_intf_vlan_trunk_allowed_cmd,
-    "vlan trunk allowed <1-4094>",
+    "vlan trunk allowed <A:1-4094>",
     VLAN_STR
     TRUNK_STR
     "Allowed VLANs on the trunk port\n"
-    "VLAN identifier\n")
+    "VLAN identifier range. [2, 2-10 or 2,3,4 or 2,3-10]\n")
 {
     const struct ovsrec_port *port_row = NULL;
     const struct ovsrec_port *vlan_port_row = NULL;
     const struct ovsrec_interface *intf_row = NULL;
     const struct ovsrec_vlan *vlan_row = NULL;
+    struct range_list *temp_to_free, *temp_to_display, *list = NULL;
+    struct ovsdb_idl_txn *status_txn = NULL;
     const struct ovsrec_system *const_row = NULL;
-    struct ovsdb_idl_txn *status_txn = cli_do_config_start();
-    int max_vlan=0;
-    int min_vlan=0;
     enum ovsdb_idl_txn_status status;
-    int vlan_id = atoi((char *) argv[0]);
-    int i = 0, found_vlan = 0;
 
-    if (NULL == status_txn)
-    {
-        VLOG_ERR("Failed to create transaction. Function:%s, Line:%d", __func__, __LINE__);
-        cli_do_config_abort(status_txn);
-        vty_out(vty, OVSDB_INTF_VLAN_TRUNK_ALLOWED_ERROR, vlan_id, VTY_NEWLINE);
-        return CMD_SUCCESS;
-    }
+    int vlan_id = 0;
+    int max_vlan = 0;
+    int min_vlan = 0;
 
-    char *ifname = (char *) vty->index;
+    char *in = (char *) malloc(strlen(argv[0]) * sizeof (char));
+    strcpy(in, argv[0]);
+    list = cmd_get_range_value(in, 0);
+
+    if (list == NULL)
+        return CMD_ERR_NO_MATCH;
+
+    temp_to_display = temp_to_free = list;
+    status_txn = cli_do_config_start();
     const_row = ovsrec_system_first(idl);
 
     if (!const_row) {
@@ -1221,129 +1222,167 @@ DEFUN(cli_intf_vlan_trunk_allowed,
     max_vlan = smap_get_int(&const_row->other_config,
                     SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN, -1);
 
-    if ((vlan_id >= min_vlan) &&
-        (vlan_id <= max_vlan))
+    while (list != NULL)
     {
-       vty_out(vty, "Unable to set VLAN. VLAN %s is part of internal VLAN.%s",
-                    argv[0], VTY_NEWLINE);
-       cli_do_config_abort(status_txn);
-       return CMD_SUCCESS;
-    }
+        int i = 0, found_vlan = 0;
+        vlan_id = atoi(list->value);
 
-    OVSREC_INTERFACE_FOR_EACH(intf_row, idl)
-    {
-        if (strcmp(intf_row->name, ifname) == 0)
+        if (NULL == status_txn)
         {
-            break;
+            VLOG_ERR("Failed to create transaction. Function:%s, Line:%d", __func__, __LINE__);
+            cli_do_config_abort(status_txn);
+            vty_out(vty, OVSDB_INTF_VLAN_TRUNK_ALLOWED_ERROR, vlan_id, VTY_NEWLINE);
+            return CMD_SUCCESS;
         }
-    }
 
-    port_row = ovsrec_port_first(idl);
-    if (NULL == port_row)
-    {
-        vlan_port_row = port_check_and_add(ifname, true, true, status_txn);
-    }
-    else
-    {
-        OVSREC_PORT_FOR_EACH(port_row, idl)
+        char *ifname = (char *) vty->index;
+
+        if ((vlan_id >= min_vlan) && (vlan_id <= max_vlan))
         {
-            for (i = 0; i < port_row->n_interfaces; i++)
+            vty_out(vty, "Unable to set VLAN. VLAN %s is part of internal VLAN.%s",
+                         (list->value), VTY_NEWLINE);
+            cli_do_config_abort(status_txn);
+            return CMD_SUCCESS;
+        }
+
+        OVSREC_INTERFACE_FOR_EACH(intf_row, idl)
+        {
+            if (strcmp(intf_row->name, ifname) == 0)
             {
-                if (port_row->interfaces[i] == intf_row)
+                break;
+            }
+        }
+
+        port_row = ovsrec_port_first(idl);
+        if (NULL == port_row)
+        {
+            vlan_port_row = port_check_and_add(ifname, true, true, status_txn);
+        }
+        else
+        {
+            OVSREC_PORT_FOR_EACH(port_row, idl)
+            {
+                for (i = 0; i < port_row->n_interfaces; i++)
                 {
-                    if (strcmp(port_row->name, ifname) != 0)
+                    if (port_row->interfaces[i] == intf_row)
                     {
-                        vty_out(vty, "Can't configure VLAN, interface is part of LAG %s.%s", port_row->name, VTY_NEWLINE);
-                        cli_do_config_abort(status_txn);
-                        return CMD_SUCCESS;
-                    }
-                    else
-                    {
-                        vlan_port_row = port_row;
-                        break;
+                        if (strcmp(port_row->name, ifname) != 0)
+                        {
+                            vty_out(vty, "Can't configure VLAN, interface is "
+                                         "part of LAG %s.%s", port_row->name,
+                                          VTY_NEWLINE);
+                            cli_do_config_abort(status_txn);
+                            return CMD_SUCCESS;
+                        }
+                        else
+                        {
+                            vlan_port_row = port_row;
+                            break;
+                        }
                     }
                 }
             }
         }
-    }
 
-    if (NULL == vlan_port_row )
-    {
-        vlan_port_row = port_check_and_add(ifname, true, true, status_txn);
-    }
-
-    if (!check_iface_in_bridge(ifname))
-    {
-        vty_out(vty, "Failed to set allowed trunk VLAN. Disable routing on the interface.%s", VTY_NEWLINE);
-        cli_do_config_abort(status_txn);
-        return CMD_SUCCESS;
-    }
-
-    vlan_row = ovsrec_vlan_first(idl);
-    if (NULL == vlan_row)
-    {
-        vty_out(vty, "VLAN %d not found%s", vlan_id, VTY_NEWLINE);
-        cli_do_config_abort(status_txn);
-        return CMD_SUCCESS;
-    }
-
-    OVSREC_VLAN_FOR_EACH(vlan_row, idl)
-    {
-        if (vlan_row->id == vlan_id)
+        if (NULL == vlan_port_row )
         {
-            found_vlan = 1;
-            break;
+            vlan_port_row = port_check_and_add(ifname, true, true, status_txn);
         }
-    }
 
-    if (0 == found_vlan)
-    {
-        vty_out(vty, "VLAN %d not found%s", vlan_id, VTY_NEWLINE);
-        cli_do_config_abort(status_txn);
-        return CMD_SUCCESS;
-    }
-
-    if (NULL == vlan_port_row->vlan_mode)
-    {
-        ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
-    }
-    else if (strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_TAGGED) != 0 &&
-        strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_UNTAGGED) != 0)
-    {
-        ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
-    }
-
-    int64_t* trunks = NULL;
-    for (i = 0; i < vlan_port_row->n_trunks; i++)
-    {
-        if (vlan_id == vlan_port_row->trunks[i])
+        if (!check_iface_in_bridge(ifname))
         {
-            vty_out(vty, "The VLAN is already allowed on the interface.%s", VTY_NEWLINE);
-            status = cli_do_config_finish(status_txn);
-            if (status == TXN_SUCCESS || status == TXN_UNCHANGED)
+            vty_out(vty, "Failed to set allowed trunk VLAN. Disable routing on"
+                         " the interface %s.%s", ifname, VTY_NEWLINE);
+            cli_do_config_abort(status_txn);
+            return CMD_SUCCESS;
+        }
+
+        vlan_row = ovsrec_vlan_first(idl);
+        if (NULL == vlan_row)
+        {
+            vty_out(vty, "VLAN %d not found for interface %s, aborting all the"
+                         " VLAN's ", vlan_id, ifname);
+            while (temp_to_display->link != NULL)
             {
-                return CMD_SUCCESS;
+                vty_out (vty, "%s, ", (temp_to_display->value));
+                temp_to_display = temp_to_display->link;
             }
-            else
+            vty_out (vty, "%s configurations.%s", (temp_to_display->value), VTY_NEWLINE);
+            temp_to_display = NULL;
+            cli_do_config_abort(status_txn);
+            return CMD_SUCCESS;
+        }
+
+        OVSREC_VLAN_FOR_EACH(vlan_row, idl)
+        {
+            if (vlan_row->id == vlan_id)
             {
-                VLOG_DBG("Transaction failed to set allowed trunk VLAN %d. Function:%s, Line:%d", vlan_id, __func__, __LINE__);
-                vty_out(vty, OVSDB_INTF_VLAN_TRUNK_ALLOWED_ERROR, vlan_id, VTY_NEWLINE);
-                return CMD_SUCCESS;
+                found_vlan = 1;
+                break;
             }
         }
-    }
 
-    trunks = xmalloc(sizeof *vlan_port_row->trunks * (vlan_port_row->n_trunks + 1));
-    for (i = 0; i < vlan_port_row->n_trunks; i++)
-    {
-        trunks[i] = vlan_port_row->trunks[i];
-    }
-    trunks[vlan_port_row->n_trunks] = vlan_id;
-    int trunk_count = vlan_port_row->n_trunks + 1;
-    ovsrec_port_set_trunks(vlan_port_row, trunks, trunk_count);
+        if (0 == found_vlan)
+        {
+            vty_out(vty, "VLAN %d not found for interface %s, aborting all the"
+                         " VLAN's ", vlan_id, ifname);
+            while (temp_to_display->link != NULL)
+            {
+                vty_out (vty, "%s, ", (temp_to_display->value));
+                temp_to_display = temp_to_display->link;
+            }
+            vty_out (vty, "%s configurations.%s", (temp_to_display->value), VTY_NEWLINE);
+            temp_to_display = NULL;
+            cli_do_config_abort(status_txn);
+            return CMD_SUCCESS;
+        }
 
+        if (NULL == vlan_port_row->vlan_mode)
+        {
+            ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
+        }
+        else if (strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_TAGGED) != 0 &&
+                 strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_UNTAGGED) != 0)
+        {
+            ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
+        }
+
+        int64_t* trunks = NULL;
+        for (i = 0; i < vlan_port_row->n_trunks; i++)
+        {
+            if (vlan_id == vlan_port_row->trunks[i])
+            {
+                vty_out(vty, "The VLAN %d is already allowed on the interface"
+                             "%s.%s", vlan_id, ifname, VTY_NEWLINE);
+                status = cli_do_config_finish(status_txn);
+                if (status == TXN_SUCCESS || status == TXN_UNCHANGED)
+                {
+                    return CMD_SUCCESS;
+                }
+                else
+                {
+                    VLOG_DBG("Transaction failed to set allowed trunk VLAN %d. Function:%s, Line:%d", vlan_id, __func__, __LINE__);
+                    vty_out(vty, OVSDB_INTF_VLAN_TRUNK_ALLOWED_ERROR, vlan_id, VTY_NEWLINE);
+                    return CMD_SUCCESS;
+                }
+            }
+        }
+
+        trunks = xmalloc(sizeof *vlan_port_row->trunks * (vlan_port_row->n_trunks + 1));
+        for (i = 0; i < vlan_port_row->n_trunks; i++)
+        {
+            trunks[i] = vlan_port_row->trunks[i];
+        }
+        trunks[vlan_port_row->n_trunks] = vlan_id;
+        int trunk_count = vlan_port_row->n_trunks + 1;
+        ovsrec_port_set_trunks(vlan_port_row, trunks, trunk_count);
+
+        list = list->link;
+        free(trunks);
+    }
     status = cli_do_config_finish(status_txn);
-    free(trunks);
+
+    temp_to_free = cmd_free_memory_range_list(temp_to_free);
 
     if (status == TXN_SUCCESS || status == TXN_UNCHANGED)
     {
