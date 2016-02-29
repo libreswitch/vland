@@ -114,6 +114,7 @@ static int vlan_int_range_add(const char *min_vlan,
                               const char *policy)
 {
     const struct ovsrec_system *const_row = NULL;
+    const struct ovsrec_port *port_row = NULL;
     struct smap other_config;
     struct ovsdb_idl_txn *status_txn = NULL;
 
@@ -136,6 +137,20 @@ static int vlan_int_range_add(const char *min_vlan,
 
         cli_do_config_abort(status_txn);
         return CMD_OVSDB_FAILURE;
+    }
+
+    /* Check if vlan is already used by any interface then not allow to
+       create internal vlan in that range. */
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+         if ((port_row->tag != NULL) &&
+             ((*(port_row->tag) >= atoi(min_vlan)) &&
+             (*(port_row->tag) <= atoi(max_vlan)))) {
+              vty_out(vty, "VLAN %ld is already assigned. "
+                     "Cannot configure for internal vlan!.%s",
+                     *(port_row->tag), VTY_NEWLINE);
+              cli_do_config_abort(status_txn);
+              return CMD_OVSDB_FAILURE;
+         }
     }
 
     /* Copy a const type to writeable other_config type and eliminate GCC
@@ -876,6 +891,7 @@ DEFUN(cli_intf_vlan_access,
     "VLAN identifier\n")
 {
     const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface * tmp_row = NULL;
     const struct ovsrec_port *vlan_port_row = NULL;
     const struct ovsrec_interface *intf_row = NULL;
     const struct ovsrec_vlan *vlan_row = NULL;
@@ -890,6 +906,16 @@ DEFUN(cli_intf_vlan_access,
         cli_do_config_abort(status_txn);
         vty_out(vty, OVSDB_INTF_VLAN_ACCESS_ERROR, vlan_id, VTY_NEWLINE);
         return CMD_SUCCESS;
+    }
+
+    /* Check for internal vlan use. */
+    OVSREC_INTERFACE_FOR_EACH(tmp_row, idl) {
+        if (check_internal_vlan(atoi(argv[0])) == 0)
+        {
+            vty_out(vty, "Error : Vlan ID is an internal vlan.%s", VTY_NEWLINE);
+	    cli_do_config_abort(status_txn);
+            return CMD_SUCCESS;
+        }
     }
 
     char *ifname = (char *) vty->index;
