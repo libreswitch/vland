@@ -2711,6 +2711,7 @@ DEFUN(cli_show_vlan,
     const struct shash_node **nodes;
     int idx, count, i;
     char str[15];
+    const char *l3_port;
 
     vlan_row = ovsrec_vlan_first(idl);
     if (vlan_row == NULL)
@@ -2785,6 +2786,11 @@ DEFUN(cli_show_vlan,
                     }
                 }
             }
+        }
+
+        if ((l3_port = smap_get(&vlan_row->internal_usage, VLAN_INTERNAL_USAGE_L3PORT)) != NULL)
+        {
+            vty_out(vty, "%s", l3_port);
         }
 
         vty_out(vty, "%s", VTY_NEWLINE);
