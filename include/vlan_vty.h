@@ -52,6 +52,9 @@ extern int compare_nodes_by_vlan_id_in_numerical(const void *a_,
                                                    const void *b_);
 extern const struct shash_node **sort_vlan_id(const struct shash *sh);
 
+extern const struct shash_node **
+sort_interface(const struct shash *sh);
+
 void cli_post_init(void);
 void cli_pre_init(void);
 

@@ -2708,8 +2708,11 @@ DEFUN(cli_show_vlan,
     const struct ovsrec_vlan *vlan_row = NULL;
     const struct ovsrec_port *port_row = NULL;
     struct shash sorted_vlan_id;
+    struct shash sorted_interfaces;
     const struct shash_node **nodes;
+    const struct shash_node **ports;
     int idx, count, i;
+    int port_count = 0;
     char str[15];
     const char *l3_port;
 
@@ -2733,11 +2736,20 @@ DEFUN(cli_show_vlan,
         shash_add(&sorted_vlan_id, str, (void *)vlan_row);
     }
 
+    OVSREC_PORT_FOR_EACH(port_row, idl)
+    {
+        if(port_row->tag != 0 || port_row->n_trunks != 0)
+            port_count++;
+    }
+
     nodes = sort_vlan_id(&sorted_vlan_id);
     count = shash_count(&sorted_vlan_id);
     for (idx = 0; idx < count; idx++)
     {
+        shash_init(&sorted_interfaces);
         vlan_row = (const struct ovsrec_vlan *)nodes[idx]->data;
+        struct ovsrec_port **port_nodes = NULL;
+        int n = 0;
         char vlan_id[5] = { 0 };
         snprintf(vlan_id, 5, "%ld", vlan_row->id);
         vty_out(vty, "%-8s", vlan_id);
@@ -2750,6 +2762,8 @@ DEFUN(cli_show_vlan,
             vty_out(vty, "%-15s", "");
         int count = 0, print_tag = 0;
         port_row = ovsrec_port_first(idl);
+
+        port_nodes = xmalloc(port_count * sizeof (struct ovsrec_port));
         if (port_row != NULL)
         {
             OVSREC_PORT_FOR_EACH(port_row, idl)
@@ -2762,28 +2776,12 @@ DEFUN(cli_show_vlan,
                         {
                             print_tag = 1;
                         }
-                        if (count == 0)
-                        {
-                            vty_out(vty, "%s", port_row->name);
-                            count++;
-                        }
-                        else
-                        {
-                            vty_out(vty, ", %s", port_row->name);
-                        }
+                        port_nodes[n++] = (struct ovsrec_port *)port_row;
                     }
                 }
                 if (print_tag == 0 && port_row->n_tag == 1 && *port_row->tag == vlan_row->id)
                 {
-                    if (count == 0)
-                    {
-                        vty_out(vty, "%s", port_row->name);
-                        count++;
-                    }
-                    else
-                    {
-                        vty_out(vty, ", %s", port_row->name);
-                    }
+                    port_nodes[n++] = (struct ovsrec_port *)port_row;
                 }
             }
         }
@@ -2793,6 +2791,27 @@ DEFUN(cli_show_vlan,
             vty_out(vty, "%s", l3_port);
         }
 
+        if(n > 0)
+        {
+            for(i = 0; i < n; i++)
+             {
+                 shash_add(&sorted_interfaces,
+                          (const char *)port_nodes[i]->name, (void *)port_row);
+             }
+             ports = sort_interface(&sorted_interfaces);
+             count = shash_count(&sorted_interfaces);
+
+             for(int id = 0; id < count; id++)
+             {
+                 if(id != count-1)
+                     vty_out(vty, "%s, ", ports[id]->name);
+                 else
+                     vty_out(vty, "%s", ports[id]->name);
+             }
+             free(ports);
+        }
+        shash_destroy(&sorted_interfaces);
+        free(port_nodes);
         vty_out(vty, "%s", VTY_NEWLINE);
     }
     shash_destroy(&sorted_vlan_id);
