@@ -2980,8 +2980,6 @@ void cli_post_init(void)
     install_element(LINK_AGGREGATION_NODE, &cli_lag_vlan_trunk_native_tag_cmd);
     install_element(LINK_AGGREGATION_NODE, &cli_lag_no_vlan_trunk_native_tag_cmd);
 
-    vtysh_init_vlan_context_clients();
-
     retval = install_show_run_config_subcontext(e_vtysh_interface_context,
                                      e_vtysh_interface_context_vlan,
                                      &vtysh_intf_context_vlan_clientcallback,

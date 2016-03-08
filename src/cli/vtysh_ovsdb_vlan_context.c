@@ -36,7 +36,6 @@
 #include "vtysh_ovsdb_vlan_context.h"
 #include "vlan_vty.h"
 
-char vlancontextclientname[] = "vtysh_vlan_context_clientcallback";
 /*-----------------------------------------------------------------------------
 | Function : vtysh_vlan_context_clientcallback
 | Responsibility : client callback routine
@@ -196,32 +195,6 @@ vtysh_intf_context_vlan_clientcallback(void *p_private)
     }
     vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no routing");
     vtysh_ovsdb_intftable_parse_vlan(ifrow->name, p_msg);
-  }
-  return e_vtysh_ok;
-}
-
-/*-----------------------------------------------------------------------------
-| Function : vtysh_init_vlan_contextclients
-| Responsibility : Registers the client callback routines for vlancontext
-| Parameters :
-| Return :
------------------------------------------------------------------------------*/
-int
-vtysh_init_vlan_context_clients()
-{
-  vtysh_context_client client;
-  vtysh_ret_val retval = e_vtysh_error;
-
-  client.p_client_name = vlancontextclientname;
-  client.client_id = e_vtysh_vlan_context_config;
-  client.p_callback = &vtysh_vlan_context_clientcallback;
-  retval = vtysh_context_addclient(e_vtysh_vlan_context, e_vtysh_vlan_context_config, &client);
-  if(e_vtysh_ok != retval)
-  {
-    vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
-                              "vlan context unable to add config callback");
-    assert(0);
-    return retval;
   }
   return e_vtysh_ok;
 }
