@@ -1135,9 +1135,10 @@ DEFUN(cli_intf_no_vlan_access,
         return CMD_SUCCESS;
     }
 
-     if (vlan_id != 0 && vlan_port_row->tag[0] != vlan_id)
+    if (vlan_id != 0 && vlan_port_row->tag[0] != vlan_id)
     {
-        vty_out(vty, "VLAN %d is not configured in interface access mode%s", vlan_id, VTY_NEWLINE);
+        vty_out(vty, "VLAN %d is not configured in interface access mode.%s",
+                 vlan_id, VTY_NEWLINE);
         cli_do_config_abort(status_txn);
         return CMD_SUCCESS;
     }
@@ -1693,6 +1694,12 @@ DEFUN(cli_intf_no_vlan_trunk_native,
     struct ovsdb_idl_txn *status_txn = cli_do_config_start();
     enum ovsdb_idl_txn_status status;
     int i = 0;
+    int vlan_id = 0;
+
+    if(argc > 0 && argv[0] != NULL)
+    {
+        vlan_id = atoi((char *) argv[0]);
+    }
 
     if (NULL == status_txn)
     {
@@ -1758,6 +1765,15 @@ DEFUN(cli_intf_no_vlan_trunk_native,
         strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_UNTAGGED) != 0)
     {
         vty_out(vty, "The interface is not in native mode.%s", VTY_NEWLINE);
+        cli_do_config_abort(status_txn);
+        return CMD_SUCCESS;
+    }
+
+
+    if (vlan_id != 0 && vlan_port_row->tag[0] != vlan_id)
+    {
+        vty_out(vty, "VLAN %d is not the native vlan in this interface.%s",
+                vlan_id, VTY_NEWLINE);
         cli_do_config_abort(status_txn);
         return CMD_SUCCESS;
     }
