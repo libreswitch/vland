@@ -1250,6 +1250,14 @@ DEFUN(cli_intf_vlan_trunk_allowed,
             vty_out(vty, OVSDB_INTF_VLAN_TRUNK_ALLOWED_ERROR, vlan_id, VTY_NEWLINE);
             return CMD_SUCCESS;
         }
+          /* Check for internal vlan use. */
+        if (check_internal_vlan(vlan_id) == 0)
+        {
+            vty_out(vty, "Error : Vlan ID-%d is an internal vlan.%s",vlan_id, VTY_NEWLINE);
+            list = list->link;
+            continue;
+        }
+
 
         char *ifname = (char *) vty->index;
 
@@ -1574,6 +1582,7 @@ DEFUN(cli_intf_vlan_trunk_native,
     const struct ovsrec_port *port_row = NULL;
     const struct ovsrec_port *vlan_port_row = NULL;
     const struct ovsrec_interface *intf_row = NULL;
+     const struct ovsrec_interface * tmp_row = NULL;
     const struct ovsrec_vlan *vlan_row = NULL;
     struct ovsdb_idl_txn *status_txn = cli_do_config_start();
     enum ovsdb_idl_txn_status status;
@@ -1586,6 +1595,16 @@ DEFUN(cli_intf_vlan_trunk_native,
         cli_do_config_abort(status_txn);
         vty_out(vty, OVSDB_INTF_VLAN_TRUNK_NATIVE_ERROR,vlan_id, VTY_NEWLINE);
         return CMD_SUCCESS;
+    }
+
+     /* Check for internal vlan use. */
+    OVSREC_INTERFACE_FOR_EACH(tmp_row, idl) {
+        if (check_internal_vlan(vlan_id) == 0)
+        {
+            vty_out(vty, "Error : Vlan ID-%d is an internal vlan.%s",vlan_id, VTY_NEWLINE);
+            cli_do_config_abort(status_txn);
+            return CMD_SUCCESS;
+        }
     }
 
     char *ifname = (char *) vty->index;
