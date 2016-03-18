@@ -97,6 +97,7 @@ static char * vlan_oper_state_reason_to_str(enum ovsrec_vlan_oper_state_reason_e
 static struct vlan_data * vlan_lookup_by_vid(int vid);
 static void update_vlan_membership(struct vlan_data *vlan_ptr);
 static int handle_vlan_config(const struct ovsrec_vlan *row, struct vlan_data *vptr);
+bool check_port_in_bridge(const char *port_name);
 
 /**********************************************************************/
 /*                               DEBUG                                */
@@ -211,7 +212,8 @@ construct_vlan_bitmap(const struct ovsrec_port *row, struct port_data *port)
          * This means all VLANs defined in VLAN table will be
          * configured on this port.*/
         vbmp = vlan_bitmap_clone(all_vlans_bitmap);
-        trunk_all_vlans = true;
+        if (check_port_in_bridge(row->name))
+           trunk_all_vlans = true;
     }
 
     /* Finally, add in native VLAN into VLAN bitmap. */
@@ -286,6 +288,30 @@ add_new_port(const struct ovsrec_port *port_row)
     }
 
 } /* add_new_port */
+
+bool
+check_port_in_bridge(const char *port_name)
+{
+    const struct ovsrec_system *ovs_row = NULL;
+    struct ovsrec_bridge *br_cfg = NULL;
+    struct ovsrec_port *port_cfg = NULL;
+    size_t i, j;
+    ovs_row = ovsrec_system_first(idl);
+    if (ovs_row == NULL) {
+        return false;
+    }
+    for (i = 0; i < ovs_row->n_bridges; i++) {
+        br_cfg = ovs_row->bridges[i];
+        for (j = 0; j < br_cfg->n_ports; j++) {
+            port_cfg = br_cfg->ports[j];
+            if (strcmp(port_name, port_cfg->name) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 
 static int
 update_port_cache(void)
@@ -512,6 +538,8 @@ update_vlan_membership(struct vlan_data *vlan_ptr)
 
     SHASH_FOR_EACH(sh_node, &all_ports) {
         port = sh_node->data;
+        if (!check_port_in_bridge(port->name))
+           continue;
 
         /* Add this new VLAN to any port that's implicitly trunking all VLANs. */
         if (port->trunk_all_vlans) {
@@ -791,6 +819,7 @@ vland_ovsdb_init(const char *db_path)
     /* Cache System table. */
     ovsdb_idl_add_table(idl, &ovsrec_table_system);
     ovsdb_idl_add_column(idl, &ovsrec_system_col_cur_cfg);
+    ovsdb_idl_add_column(idl, &ovsrec_system_col_bridges);
 
     /* Cache Port and VLAN tables and columns. */
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
@@ -822,6 +851,8 @@ vland_ovsdb_init(const char *db_path)
     ovsdb_idl_add_table(idl, &ovsrec_table_bridge);
 
     ovsdb_idl_add_column(idl, &ovsrec_bridge_col_name);
+
+    ovsdb_idl_add_column(idl, &ovsrec_bridge_col_ports);
 
     ovsdb_idl_add_column(idl, &ovsrec_bridge_col_vlans);
     ovsdb_idl_omit_alert(idl, &ovsrec_bridge_col_vlans);
