@@ -249,6 +249,7 @@ DEFUN(vtysh_vlan,
     const struct ovsrec_vlan *vlan_row = NULL;
     const struct ovsrec_bridge *bridge_row = NULL;
     const struct ovsrec_bridge *default_bridge_row = NULL;
+    const struct ovsrec_port *port_row = NULL;
     bool vlan_found = false;
     struct ovsdb_idl_txn *status_txn = NULL;
     enum ovsdb_idl_txn_status status;
@@ -257,6 +258,8 @@ DEFUN(vtysh_vlan,
     int vlan_id = atoi(argv[0]);
     static char vlan[5] = { 0 };
     static char vlan_name[9] = { 0 };
+    static char vlan_if[MAX_IFNAME_LENGTH];
+    int64_t tag = (int64_t)vlan_id;
     snprintf(vlan, 5, "%s", argv[0]);
     snprintf(vlan_name, 9, "%s%s", "VLAN", argv[0]);
 
@@ -331,6 +334,16 @@ DEFUN(vtysh_vlan,
         vlans[default_bridge_row->n_vlans] = CONST_CAST(struct ovsrec_vlan*,vlan_row);
         ovsrec_bridge_set_vlans(default_bridge_row, vlans,
             default_bridge_row->n_vlans + 1);
+        /* Checking for interface vlan if found add as a member of the vlan.*/
+        VLANIF_NAME(vlan_if, argv[0]);
+        OVSREC_PORT_FOR_EACH(port_row, idl)
+        {
+           if (strcmp(port_row->name, vlan_if) == 0) {
+               ovsrec_port_set_tag(port_row, &tag, 1);
+               ovsrec_port_set_vlan_mode(port_row, NULL);
+           }
+        }
+
 
         status = cli_do_config_finish(status_txn);
         free(vlans);
@@ -463,8 +476,9 @@ DEFUN(vtysh_no_vlan,
                     break;
                 }
             }
-            if (port_row->n_tag == 1 && *port_row->tag == vlan_row->id)
+            if (port_row->n_tag == 1 && *port_row->tag == vlan_id) {
                 vlan_found = 1;
+            }
 
             if (vlan_found)
             {
@@ -482,6 +496,7 @@ DEFUN(vtysh_no_vlan,
                     free(tag);
                 }
             }
+            vlan_found = 0;
         }
 
         ovsrec_vlan_delete(vlan_row);
