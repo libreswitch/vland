@@ -2995,7 +2995,7 @@ void cli_pre_init(void)
 
     retval = install_show_run_config_context(e_vtysh_vlan_context,
                                          &vtysh_vlan_context_clientcallback,
-                                         NULL, NULL);
+                                         &vtysh_vlan_context_init, &vtysh_vlan_context_exit);
     if(e_vtysh_ok != retval)
     {
         vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,

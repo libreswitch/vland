@@ -36,6 +36,47 @@
 #include "vtysh_ovsdb_vlan_context.h"
 #include "vlan_vty.h"
 
+static struct shash sorted_vlan_id;
+
+struct feature_sorted_list *
+vtysh_vlan_context_init(void *p_private)
+{
+   vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
+   const struct ovsrec_vlan *vlan_row;
+   const struct shash_node **nodes;
+   struct feature_sorted_list *sorted_list = NULL;
+   int count;
+   char vlan_id_str[15];
+
+   shash_init(&sorted_vlan_id);
+
+   OVSREC_VLAN_FOR_EACH(vlan_row, p_msg->idl)
+   {
+       sprintf(vlan_id_str, "%ld", vlan_row->id);
+       shash_add(&sorted_vlan_id, vlan_id_str, (void *)vlan_row);
+   }
+
+   nodes = sort_vlan_id(&sorted_vlan_id);
+   count = shash_count(&sorted_vlan_id);
+
+   sorted_list = (struct feature_sorted_list *)
+                 malloc (sizeof(struct feature_sorted_list));
+   if (sorted_list != NULL) {
+       sorted_list->nodes = nodes;
+       sorted_list->count = count;
+   }
+
+   return sorted_list;
+}
+
+void
+vtysh_vlan_context_exit(struct feature_sorted_list *list)
+{
+   shash_destroy(&sorted_vlan_id);
+   free(list->nodes);
+   free(list);
+}
+
 /*-----------------------------------------------------------------------------
 | Function : vtysh_vlan_context_clientcallback
 | Responsibility : client callback routine
@@ -48,51 +89,18 @@ vtysh_ret_val
 vtysh_vlan_context_clientcallback(void *p_private)
 {
   vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
-  const struct ovsrec_vlan *vlan_row;
-  struct shash sorted_vlan_id;
-  const struct shash_node **nodes;
-  int idx=0;
-  int count=0;
-  char str[15];
+  const struct ovsrec_vlan *vlan_row = (struct ovsrec_vlan *)p_msg->feature_row;
 
-  vlan_row = ovsrec_vlan_first(p_msg->idl);
-  if (vlan_row == NULL)
-  {
-      return e_vtysh_ok;
-  }
-
-  shash_init(&sorted_vlan_id);
-
-  OVSREC_VLAN_FOR_EACH(vlan_row, p_msg->idl)
-  {
-      sprintf(str, "%ld", vlan_row->id);
-      shash_add(&sorted_vlan_id, str, (void *)vlan_row);
-  }
-
-  nodes = sort_vlan_id(&sorted_vlan_id);
-  count = shash_count(&sorted_vlan_id);
-
-  for (idx = 0; idx < count; idx++)
-  {
-      vlan_row = (const struct ovsrec_vlan *)nodes[idx]->data;
-      if (!check_if_internal_vlan(vlan_row))
-      {
-          vtysh_ovsdb_cli_print(p_msg, "%s %d", "vlan", vlan_row->id);
-
-          if (strcmp(vlan_row->admin, OVSREC_VLAN_ADMIN_UP) == 0)
-          {
-              vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no shutdown");
-          }
-
-          if (vlan_row->description != NULL)
-          {
-              vtysh_ovsdb_cli_print(p_msg, "%4s%s%s", "", "description ",
-                                                     vlan_row->description);
-          }
-       }
-  }
-  shash_destroy(&sorted_vlan_id);
-  free(nodes);
+  if (!check_if_internal_vlan(vlan_row)) {
+        vtysh_ovsdb_cli_print(p_msg, "%s %d", "vlan", vlan_row->id);
+        if (strcmp(vlan_row->admin, OVSREC_VLAN_ADMIN_UP) == 0) {
+            vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no shutdown");
+        }
+        if (vlan_row->description != NULL) {
+            vtysh_ovsdb_cli_print(p_msg, "%4s%s%s", "", "description ",
+                                                   vlan_row->description);
+        }
+   }
 
   return e_vtysh_ok;
 }
