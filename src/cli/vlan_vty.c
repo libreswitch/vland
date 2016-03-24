@@ -197,16 +197,16 @@ DEFUN (vtysh_interface_vlan,
 
    VLANIF_NAME(vlan_if, argv[0]);
 
-   if ((verify_ifname(vlan_if) == 0)) {
+   if (!verify_ifname(vlan_if)) {
        vty->node = CONFIG_NODE;
-       return CMD_ERR_NO_MATCH;
+       return CMD_ERR_NOTHING_TODO;
    }
 
    VLOG_DBG("%s vlan interface = %s\n", __func__, vlan_if);
 
    if (create_vlan_interface(vlan_if) == CMD_OVSDB_FAILURE) {
        vty->node = CONFIG_NODE;
-       return CMD_ERR_NO_MATCH;
+       return CMD_ERR_NOTHING_TODO;
    }
    vty->index = vlan_if;
 

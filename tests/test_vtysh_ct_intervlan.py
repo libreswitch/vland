@@ -23,8 +23,8 @@ from opsvsi.opsvsitest import *
 first_interface = "1"
 second_interface = "2"
 third_interface = "3"
-error_str_range = "Error : Vlanid outside valid vlan range <1-4094>"
-error_str_invalid_vlan = "Error : Invalid vlan input"
+error_str_range = "Vlanid outside valid vlan range <1-4094>"
+error_str_invalid_vlan = "Invalid vlan input"
 max_vlan = "4095"
 min_vlan = "0"
 
@@ -85,7 +85,7 @@ class intervlanCLITest(OpsVsiTest):
         assert error_str_invalid_vlan in ret, \
             'Vlan id = abc2abc validation failed'
         ret = s1.cmdCLI("interface vlan abc#$ ")
-        assert 'Unknown command.' in ret, \
+        assert error_str_invalid_vlan in ret, \
             'Vlan id = abc#$ validation failed'
         ret = s1.cmdCLI("interface vlanabc#$")
         assert 'Unknown command.' in ret, \
