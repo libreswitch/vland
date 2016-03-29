@@ -2775,7 +2775,7 @@ DEFUN(cli_show_vlan,
 
     vty_out(vty, "%s", VTY_NEWLINE);
     vty_out(vty, "--------------------------------------------------------------------------------------%s", VTY_NEWLINE);
-    vty_out(vty, "VLAN    Name            Status   Reason         Reserved       Ports%s", VTY_NEWLINE);
+    vty_out(vty, "VLAN    Name            Status   Reason         Reserved       Interfaces%s", VTY_NEWLINE);
     vty_out(vty, "--------------------------------------------------------------------------------------%s", VTY_NEWLINE);
 
     shash_init(&sorted_vlan_id);
@@ -2907,7 +2907,7 @@ DEFUN(cli_show_vlan_id,
 
     vty_out(vty, "%s", VTY_NEWLINE);
     vty_out(vty, "--------------------------------------------------------------------------------------%s", VTY_NEWLINE);
-    vty_out(vty, "VLAN    Name            Status   Reason         Reserved       Ports%s", VTY_NEWLINE);
+    vty_out(vty, "VLAN    Name            Status   Reason         Reserved       Interfaces%s", VTY_NEWLINE);
     vty_out(vty, "--------------------------------------------------------------------------------------%s", VTY_NEWLINE);
 
 
