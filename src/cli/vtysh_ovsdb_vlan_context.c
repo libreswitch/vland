@@ -200,6 +200,7 @@ vtysh_intf_context_vlan_clientcallback(void *p_private)
   if (!check_iface_in_vrf(ifrow->name)) {
     if (!p_msg->disp_header_cfg) {
       vtysh_ovsdb_cli_print(p_msg, "interface %s", ifrow->name);
+      p_msg->disp_header_cfg = true;
     }
     vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no routing");
     vtysh_ovsdb_intftable_parse_vlan(ifrow->name, p_msg);
