@@ -124,6 +124,7 @@ class vlanInternalCT(OpsVsiTest):
 ''')
 
 
+@pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_vtysh_vlan_int:
 
     def setup_class(cls):

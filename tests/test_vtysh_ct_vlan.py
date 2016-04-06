@@ -599,6 +599,7 @@ class VLANCliTest(OpsVsiTest):
         return True
 
 
+@pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_vlan_cli:
 
     def setup(self):

@@ -26,8 +26,8 @@ TOPOLOGY = """
 
 
 def test_intervlan_cli(topology, step):
-    error_str_range = "Error : Vlanid outside valid vlan range <1-4094>"
-    error_str_invalid_vlan = "Error : Invalid vlan input"
+    error_str_range = "Vlanid outside valid vlan range <1-4094>"
+    error_str_invalid_vlan = "Invalid vlan input"
     max_vlan = "4095"
     min_vlan = "0"
     sw1 = topology.get('sw1')

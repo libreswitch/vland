@@ -133,6 +133,7 @@ class vlandTest( OpsVsiTest ):
             result[name] = val
         return result
 
+@pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_vland:
 
     # Create the Mininet topology based on mininet.
