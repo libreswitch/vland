@@ -136,9 +136,6 @@ class vlandTest( OpsVsiTest ):
 @pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_vland:
 
-    # Create the Mininet topology based on mininet.
-    test = vlandTest()
-
     def setup(self):
         pass
 
@@ -146,6 +143,8 @@ class Test_vland:
         pass
 
     def setup_class(cls):
+        # Create the Mininet topology based on mininet.
+        Test_vland.test = vlandTest()
         # Create initial bridge "br0" to hold ports
         Test_vland.test.s1.ovscmd("/usr/bin/ovs-vsctl add-br br0")
 
