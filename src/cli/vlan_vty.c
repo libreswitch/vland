@@ -691,7 +691,6 @@ static int show_vlan_int_range()
     const struct ovsrec_system *const_row = NULL;
     const char *policy;
     uint16_t   min_vlan, max_vlan;
-    struct ovsdb_idl_txn *status_txn = NULL;
 
     struct shash sorted_vlan_port;
     const struct shash_node **nodes;
@@ -701,20 +700,11 @@ static int show_vlan_int_range()
     const struct ovsrec_port *port_row = NULL;
     const char *port_vlan_str;
 
-    status_txn = cli_do_config_start();
-
-    if (NULL == status_txn) {
-        VLOG_ERR("[%s:%d]: Failed to create OVSDB transaction\n", __FUNCTION__, __LINE__);
-        cli_do_config_abort(NULL);
-        return CMD_OVSDB_FAILURE;
-    }
-
     const_row = ovsrec_system_first(idl);
 
     if (!const_row) {
         VLOG_ERR("[%s:%d]: Failed to retrieve a row from System table\n",
                     __FUNCTION__, __LINE__);
-        cli_do_config_abort(status_txn);
         return CMD_OVSDB_FAILURE;
     }
 
@@ -766,12 +756,6 @@ static int show_vlan_int_range()
         port_row = (const struct ovsrec_port *)nodes[idx]->data;
          port_vlan_str = smap_get(&port_row->hw_config, PORT_HW_CONFIG_MAP_INTERNAL_VLAN_ID);
         vty_out(vty, "\t%-4s\t\t%-16s\n", port_vlan_str, port_row->name);
-    }
-
-    if (cli_do_config_finish(status_txn)) {
-        return CMD_SUCCESS;
-    } else {
-        return CMD_OVSDB_FAILURE;
     }
 
     shash_destroy(&sorted_vlan_port);
@@ -2974,6 +2958,19 @@ void cli_pre_init(void)
     vtysh_install_default (VLAN_INTERFACE_NODE);
     vlan_ovsdb_init();
 
+    retval = install_show_run_config_context(e_vtysh_global_vlan_context,
+                                     &vtysh_vlan_global_context_clientcallback,
+                                     NULL, NULL);
+    if(e_vtysh_ok != retval)
+    {
+        vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
+                           "Vlan golbal context unable to add vlan global" \
+                           " client callback");
+        assert(0);
+        return;
+    }
+    retval = e_vtysh_error;
+
     retval = install_show_run_config_context(e_vtysh_vlan_context,
                                          &vtysh_vlan_context_clientcallback,
                                          &vtysh_vlan_context_init, &vtysh_vlan_context_exit);
@@ -3039,6 +3036,7 @@ void cli_post_init(void)
         vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
                            "Interface context unable to add vlan client callback");
         assert(0);
+        return;
     }
 
     return;

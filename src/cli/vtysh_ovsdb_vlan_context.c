@@ -35,6 +35,7 @@
 #include "vtysh/utils/vlan_vtysh_utils.h"
 #include "vtysh_ovsdb_vlan_context.h"
 #include "vlan_vty.h"
+#include "smap.h"
 
 static struct shash sorted_vlan_id;
 
@@ -175,6 +176,58 @@ vtysh_ovsdb_intftable_parse_vlan(const char *if_name,
     }
   }
 
+  return e_vtysh_ok;
+}
+
+/*-----------------------------------------------------------------------------
+| Function : vtysh_vlan_global_context_clientcallback
+| Responsibility : Verify if internal vlan range is changed
+| Parameters :
+|     void *p_private: void type object typecast to required
+| Return : e_vtysh_ok on success else e_vtysh_error
+-----------------------------------------------------------------------------*/
+vtysh_ret_val
+vtysh_vlan_global_context_clientcallback(void *p_private)
+{
+  vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
+  const struct ovsrec_system *system_row;
+  uint16_t min_internal_vlan_id, max_internal_vlan_id;
+  const char* vlan_policy;
+
+  system_row = ovsrec_system_first(p_msg->idl);
+  if (system_row == NULL) {
+     vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
+                           "Failed to get row information of system table\n");
+  }
+  else {
+      min_internal_vlan_id = smap_get_int(
+                                 &system_row->other_config,
+                                 SYSTEM_OTHER_CONFIG_MAP_MIN_INTERNAL_VLAN,
+                                 INTERNAL_VLAN_ID_INVALID);
+      max_internal_vlan_id = smap_get_int(
+                                 &system_row->other_config,
+                                 SYSTEM_OTHER_CONFIG_MAP_MAX_INTERNAL_VLAN,
+                                 INTERNAL_VLAN_ID_INVALID);
+      vlan_policy = smap_get(&system_row->other_config,
+                            SYSTEM_OTHER_CONFIG_MAP_INTERNAL_VLAN_POLICY);
+      if (vlan_policy == NULL) {
+          vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
+                                     "Failed to fetch internal vlan policy "
+                                     "from system table\n");
+          return e_vtysh_ok;
+      }
+
+      if (min_internal_vlan_id != DEFAULT_INTERNAL_VLAN_MIN_VID_VALUE ||
+          max_internal_vlan_id != DEFAULT_INTERNAL_VLAN_MAX_VID_VALUE ||
+          strncmp(vlan_policy,
+               SYSTEM_OTHER_CONFIG_MAP_INTERNAL_VLAN_POLICY_ASCENDING_DEFAULT,
+               VLAN_POLICY_STR_LEN)) {
+          vtysh_ovsdb_cli_print(p_msg, "vlan internal range %d %d %s",
+                                         min_internal_vlan_id,
+                                         max_internal_vlan_id,
+                                         vlan_policy);
+      }
+  }
   return e_vtysh_ok;
 }
 
