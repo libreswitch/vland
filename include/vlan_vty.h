@@ -47,7 +47,8 @@
 #define OVSDB_INTF_VLAN_REMOVE_TRUNK_NATIVE_ERROR "Failed to remove native VLAN%s"
 #define OVSDB_INTF_VLAN_TRUNK_NATIVE_TAG_ERROR "Failed to set native VLAN tagging on the interface%s"
 #define OVSDB_INTF_VLAN_REMOVE_TRUNK_NATIVE_TAG_ERROR "Failed to remove native VLAN tagging on the interface%s"
-
+#define DEFAULT_INTERNAL_VLAN_MIN_VID_VALUE 1024
+#define DEFAULT_INTERNAL_VLAN_MAX_VID_VALUE 4094
 extern int compare_nodes_by_vlan_id_in_numerical(const void *a_,
                                                    const void *b_);
 extern const struct shash_node **sort_vlan_id(const struct shash *sh);
