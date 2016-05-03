@@ -319,6 +319,7 @@ update_port_cache(void)
     struct shash sh_idl_ports;
     const struct ovsrec_port *row;
     struct shash_node *sh_node, *sh_next;
+    const struct ovsrec_vlan *vlanrow;
     int rc = 0;
 
     /* Collect all the ports in the DB. */
@@ -377,14 +378,18 @@ update_port_cache(void)
              * all of their status. */
             bitmap_or(modified_vlans, port->vlans_bitmap, VLAN_BITMAP_SIZE);
             BITMAP_FOR_EACH_1(vid, VLAN_BITMAP_SIZE, modified_vlans) {
-                struct vlan_data *vlan = vlan_lookup_by_vid(vid);
-                if (vlan) {
-                    update_vlan_membership(vlan);
-                    if (handle_vlan_config(vlan->idl_cfg, vlan)) {
-                        rc++;
+                OVSREC_VLAN_FOR_EACH(vlanrow, idl) {
+                    if(vlanrow->id == vid) {
+                        struct vlan_data *vlan = vlan_lookup_by_vid(vid);
+                        if (vlan)  {
+                            update_vlan_membership(vlan);
+                            if (handle_vlan_config(vlan->idl_cfg, vlan)) {
+                                rc++;
+                            }
+                        }
                     }
                 }
-            }
+           }
 
             /* Done. */
             bitmap_free(modified_vlans);
