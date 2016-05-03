@@ -605,6 +605,11 @@ calc_vlan_op_state_n_reason(struct vlan_data *new_vlan,
     state  = VLAN_OPER_STATE_DOWN;
     reason = VLAN_OPER_STATE_REASON_UNKNOWN;
 
+    /* Default VLAN oper_state is always up */
+    if (new_vlan->vid == DEFAULT_VID) {
+        state  = VLAN_OPER_STATE_UP;
+    }
+
     /* Check for admin state first. */
     if (new_vlan->admin == VLAN_ADMIN_DOWN) {
         reason = VLAN_OPER_STATE_REASON_ADMIN_DOWN;
