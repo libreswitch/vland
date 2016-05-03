@@ -1698,7 +1698,6 @@ DEFUN(cli_intf_no_vlan_trunk_native,
     enum ovsdb_idl_txn_status status;
     int i = 0;
     int vlan_id = 0;
-
     if(argc > 0 && argv[0] != NULL)
     {
         vlan_id = atoi((char *) argv[0]);
@@ -1783,9 +1782,13 @@ DEFUN(cli_intf_no_vlan_trunk_native,
 
 
     int64_t* trunks = NULL;
+    int64_t* tag = NULL;
     int trunk_count = 0;
+    int tag_count = 1;
+    tag = xmalloc(sizeof *vlan_port_row->tag);
     trunk_count = vlan_port_row->n_trunks;
-
+    tag[0] = DEFAULT_VLAN;
+    ovsrec_port_set_tag(vlan_port_row, tag, tag_count);
     if (trunk_count)
     {
         ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
@@ -1794,12 +1797,6 @@ DEFUN(cli_intf_no_vlan_trunk_native,
     {
         ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_ACCESS);
         ovsrec_port_set_trunks(vlan_port_row, trunks, trunk_count);
-        int64_t* tag = xmalloc(sizeof *port_row->tag);
-        int tag_count = 1;
-
-        tag[0] = DEFAULT_VLAN;
-        ovsrec_port_set_tag(vlan_port_row, tag, tag_count);
-        free(tag);
     }
     status = cli_do_config_finish(status_txn);
 
@@ -1813,6 +1810,7 @@ DEFUN(cli_intf_no_vlan_trunk_native,
         vty_out(vty, OVSDB_INTF_VLAN_REMOVE_TRUNK_NATIVE_ERROR, VTY_NEWLINE);
         return CMD_SUCCESS;
     }
+    free(tag);
 }
 
 DEFUN(cli_intf_vlan_trunk_native_tag,
@@ -2536,9 +2534,12 @@ DEFUN(cli_lag_no_vlan_trunk_native,
     }
 
     int64_t* trunks = NULL;
+    int tag_count = 1;
     int trunk_count = 0;
+    int64_t* tag = xmalloc(sizeof *vlan_port_row->tag);
+    tag[0] = DEFAULT_VLAN;
+    ovsrec_port_set_tag(vlan_port_row, tag, tag_count);
     trunk_count = vlan_port_row->n_trunks;
-
     if (trunk_count)
     {
         ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
@@ -2547,12 +2548,6 @@ DEFUN(cli_lag_no_vlan_trunk_native,
     {
         ovsrec_port_set_vlan_mode(vlan_port_row, OVSREC_PORT_VLAN_MODE_ACCESS);
         ovsrec_port_set_trunks(vlan_port_row, trunks, trunk_count);
-        int64_t* tag = xmalloc(sizeof *port_row->tag);
-        int tag_count = 1;
-
-        tag[0] = DEFAULT_VLAN;
-        ovsrec_port_set_tag(vlan_port_row, tag, tag_count);
-        free(tag);
     }
     status = cli_do_config_finish(status_txn);
 
@@ -2566,6 +2561,7 @@ DEFUN(cli_lag_no_vlan_trunk_native,
         vty_out(vty, OVSDB_INTF_VLAN_REMOVE_TRUNK_NATIVE_ERROR, VTY_NEWLINE);
         return CMD_SUCCESS;
     }
+    free(tag);
 }
 
 DEFUN(cli_lag_vlan_trunk_native_tag,
