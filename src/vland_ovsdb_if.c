@@ -98,6 +98,7 @@ static struct vlan_data * vlan_lookup_by_vid(int vid);
 static void update_vlan_membership(struct vlan_data *vlan_ptr);
 static int handle_vlan_config(const struct ovsrec_vlan *row, struct vlan_data *vptr);
 bool check_port_in_bridge(const char *port_name);
+bool vland_default_vlan_member_port(void);
 
 /**********************************************************************/
 /*                               DEBUG                                */
@@ -608,6 +609,10 @@ calc_vlan_op_state_n_reason(struct vlan_data *new_vlan,
     /* Default VLAN oper_state is always up */
     if (new_vlan->vid == DEFAULT_VID) {
         state  = VLAN_OPER_STATE_UP;
+        /* Default VLAN oper_state_reason is ok if it is a part of any port */
+        if (vland_default_vlan_member_port()) {
+            new_vlan->any_member_exists = true;
+        }
     }
 
     /* Check for admin state first. */
@@ -1051,3 +1056,52 @@ vland_wait(void)
     ovsdb_idl_wait(idl);
 
 } /* vland_wait */
+
+bool vland_default_vlan_member_port(void)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_vlan *vlan_row = NULL;
+    bool default_vlan_found = false;
+    int index = 0;
+
+    vlan_row = ovsrec_vlan_first(idl);
+    if (vlan_row != NULL) {
+        OVSREC_VLAN_FOR_EACH(vlan_row, idl) {
+            if(vlan_row->id == DEFAULT_VID) {
+                break;
+            }
+        }
+    }
+
+    /* vlan_row as NULL signifies that Deafult VLAN has not been created yet*/
+    if(vlan_row) {
+        port_row = ovsrec_port_first(idl);
+        if (port_row != NULL) {
+            /* Checking for Each port*/
+            OVSREC_PORT_FOR_EACH(port_row, idl) {
+                if (port_row->n_tag == 1) {
+                    /* Checking if Default VLAN is a part of tag column */
+                    if (*port_row->tag == DEFAULT_VID) {
+                        default_vlan_found = true;
+                        break;
+                    }
+                }
+                else if (port_row->n_trunks > 0) {
+                    for (index = 0; index < port_row->n_trunks; index++)
+                    {
+                        /* Checking if Default VLAN is a part of trunk column */
+                        if (port_row->trunks[index] == DEFAULT_VID) {
+                            default_vlan_found = true;
+                            break;
+                        }
+                    }
+                }
+                if (default_vlan_found) {
+                    break;
+                }
+            }
+        }
+    }
+
+    return default_vlan_found;
+}
