@@ -202,7 +202,7 @@ DEFUN (no_vtysh_interface_vlan,
        no_vtysh_interface_vlan_cmd,
        "no interface vlan VLANID",
        NO_STR
-       "Delete a pseudo interface's configuration\n"
+       INTERFACE_NO_STR
        "VLAN interface\n"
        "Vlan id within <1-4094> and should not be an internal vlan\n")
 {
