@@ -173,13 +173,15 @@ static struct cmd_node vlan_node =
 
 DEFUN (vtysh_interface_vlan,
        vtysh_interface_vlan_cmd,
-       "interface vlan VLANID",
+       "interface vlan <1-4094>",
        "Select an interface to configure\n"
         VLAN_STR
        "Vlan id within <1-4094> and should not be an internal vlan\n")
 {
    vty->node = VLAN_INTERFACE_NODE;
    static char vlan_if[MAX_IFNAME_LENGTH];
+   const struct ovsrec_vlan *vlan_row = NULL;
+   int vlan_id = atoi(argv[0]);
 
    VLANIF_NAME(vlan_if, argv[0]);
 
@@ -188,20 +190,31 @@ DEFUN (vtysh_interface_vlan,
        return CMD_ERR_NOTHING_TODO;
    }
 
-   VLOG_DBG("%s vlan interface = %s\n", __func__, vlan_if);
+   OVSREC_VLAN_FOR_EACH(vlan_row, idl)
+   {
+       if (vlan_row->id == vlan_id)
+       {
+           if (create_vlan_interface(vlan_if) == CMD_OVSDB_FAILURE) {
+               vty->node = CONFIG_NODE;
+               return CMD_ERR_NOTHING_TODO;
+           }
 
-   if (create_vlan_interface(vlan_if) == CMD_OVSDB_FAILURE) {
-       vty->node = CONFIG_NODE;
-       return CMD_ERR_NOTHING_TODO;
+           VLOG_DBG("%s Created vlan interface = %s\n", __func__, vlan_if);
+
+           vty->index = vlan_if;
+           return CMD_SUCCESS;
+       }
    }
-   vty->index = vlan_if;
 
-   return CMD_SUCCESS;
+   vty_out(vty, "VLAN %d should be created before creating "
+                "interface VLAN%d.%s",vlan_id, vlan_id, VTY_NEWLINE);
+   vty->node = CONFIG_NODE;
+   return CMD_ERR_NOTHING_TODO;
 }
 
 DEFUN (no_vtysh_interface_vlan,
        no_vtysh_interface_vlan_cmd,
-       "no interface vlan VLANID",
+       "no interface vlan <1-4094>",
        NO_STR
        INTERFACE_NO_STR
        "VLAN interface\n"
@@ -372,6 +385,7 @@ DEFUN(vtysh_no_vlan,
     struct ovsrec_vlan **vlans = NULL;
     int i = 0, n = 0;
     int vlan_id = atoi(argv[0]);
+    static char vlan_if[MAX_IFNAME_LENGTH];
 
     vlan_row = ovsrec_vlan_first(idl);
     if (vlan_row != NULL)
@@ -397,6 +411,18 @@ DEFUN(vtysh_no_vlan,
             return CMD_SUCCESS;
         }
 
+        VLANIF_NAME(vlan_if, argv[0]);
+
+        if (!vtysh_ovsdb_port_match(vlan_if))
+        {
+            /* Check for inteface VLAN.
+             * L2 VLAN deletion is allowed if interface VLAN exists */
+            vty_out(vty, "VLAN%ld is used as an interface VLAN. "
+                    "Deletion not allowed.%s", vlan_row->id, VTY_NEWLINE);
+            vty->node = CONFIG_NODE;
+            return CMD_ERR_NOTHING_TODO;
+
+        }
         status_txn = cli_do_config_start();
 
         if (status_txn == NULL)
