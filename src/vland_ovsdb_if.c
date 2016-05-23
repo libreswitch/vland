@@ -550,22 +550,23 @@ update_vlan_membership(struct vlan_data *vlan_ptr)
     struct port_data *port;
 
     SHASH_FOR_EACH(sh_node, &all_ports) {
-        port = sh_node->data;
-        if (!check_port_in_bridge(port->name))
-           continue;
+        if(sh_node != NULL){
+            port = sh_node->data;
+            if (!check_port_in_bridge(port->name))
+               continue;
 
-        /* Add this new VLAN to any port that's implicitly trunking all VLANs. */
-        if (port->trunk_all_vlans) {
-            found = true;
-            bitmap_set(port->vlans_bitmap, vlan_ptr->vid, true);
+            /* Add this new VLAN to any port that's implicitly trunking all VLANs. */
+            if (port->trunk_all_vlans) {
+                found = true;
+                bitmap_set(port->vlans_bitmap, vlan_ptr->vid, true);
 
-        } else if (bitmap_is_set(port->vlans_bitmap, vlan_ptr->vid)) {
-            found = true;
-            /* Do not exit here.  We need to update all other
-             * ports that may be implicitly trunking all VLANs. */
+            } else if (bitmap_is_set(port->vlans_bitmap, vlan_ptr->vid)) {
+                found = true;
+                /* Do not exit here.  We need to update all other
+                 * ports that may be implicitly trunking all VLANs. */
+            }
         }
     }
-
     vlan_ptr->any_member_exists = found;
 
 } /* update_vlan_membership */
@@ -745,9 +746,11 @@ del_old_vlan(struct shash_node *sh_node)
 
         /* Remove this VLAN from any port that's implicitly trunking all VLANs. */
         SHASH_FOR_EACH(port_node, &all_ports) {
-            port = port_node->data;
-            if (port->trunk_all_vlans) {
-                bitmap_set(port->vlans_bitmap, vl->vid, false);
+            if(port_node != NULL){
+                port = port_node->data;
+                if (port->trunk_all_vlans) {
+                    bitmap_set(port->vlans_bitmap, vl->vid, false);
+                }
             }
         }
         bitmap_set(all_vlans_bitmap, vl->vid, false);
@@ -777,13 +780,14 @@ update_vlan_cache(void)
 
     /* Delete old VLANs. */
     SHASH_FOR_EACH_SAFE(sh_node, sh_next, &all_vlans) {
-        new_vlan = shash_find_data(&sh_idl_vlans, sh_node->name);
-        if (!new_vlan) {
-            VLOG_DBG("Found a deleted VLAN %s", sh_node->name);
-            del_old_vlan(sh_node);
+        if(sh_node != NULL){
+            new_vlan = shash_find_data(&sh_idl_vlans, sh_node->name);
+            if (!new_vlan) {
+                VLOG_DBG("Found a deleted VLAN %s", sh_node->name);
+                del_old_vlan(sh_node);
+            }
         }
     }
-
     /* Add new VLANs. */
     SHASH_FOR_EACH(sh_node, &sh_idl_vlans) {
         new_vlan = shash_find_data(&all_vlans, sh_node->name);
