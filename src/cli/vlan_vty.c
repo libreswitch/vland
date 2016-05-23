@@ -1193,8 +1193,11 @@ DEFUN(cli_intf_vlan_trunk_allowed,
     int min_vlan = 0;
 
     char *in = (char *) malloc(strlen(argv[0]) * sizeof (char));
-    strcpy(in, argv[0]);
-    list = cmd_get_range_value(in, 0);
+    if (in != NULL) {
+        strncpy(in, argv[0], strlen(argv[0]));
+        list = cmd_get_range_value(in, 0);
+        free(in);
+    }
 
     if (list == NULL)
         return CMD_ERR_NO_MATCH;
