@@ -84,7 +84,8 @@ sort_vlan_id(const struct shash *sh)
         nodes = xmalloc(n * sizeof *nodes);
         i = 0;
         SHASH_FOR_EACH (node, sh) {
-            nodes[i++] = node;
+            if(node != NULL)
+                nodes[i++] = node;
         }
         ovs_assert(i == n);
 
@@ -459,6 +460,7 @@ DEFUN(vtysh_no_vlan,
                     }
                     trunk_count = port_row->n_trunks - 1;
                     ovsrec_port_set_trunks(port_row, trunks, trunk_count);
+                    free(trunks);
                     break;
                 }
             }
@@ -1774,7 +1776,7 @@ DEFUN(cli_intf_no_vlan_trunk_native,
         return CMD_SUCCESS;
     }
 
-    if (vlan_port_row->vlan_mode != NULL &&
+    if ((NULL != vlan_port_row) && vlan_port_row->vlan_mode != NULL &&
         strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_TAGGED) != 0 &&
         strcmp(vlan_port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_NATIVE_UNTAGGED) != 0)
     {
