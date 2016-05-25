@@ -111,17 +111,19 @@ vland_debug_dump(struct ds *ds)
 
     ds_put_cstr(ds, "================ Ports ================\n");
     SHASH_FOR_EACH(sh_node, &all_ports) {
-        int vid;
-        struct port_data *port = sh_node->data;
-        ds_put_format(ds, "Port %s:\n", port->name);
-        ds_put_format(ds, "  VLAN_mode=%s, native_VID=%d, trunk_all_VLANs=%s\n",
-                      vlan_mode_to_str(port->vlan_mode), port->native_vid,
-                      (port->trunk_all_vlans ? "true" : "false"));
-        ds_put_format(ds, "  VLANs:");
-        BITMAP_FOR_EACH_1(vid, VLAN_BITMAP_SIZE, port->vlans_bitmap) {
-            ds_put_format(ds, " %d,", vid);
+        if(sh_node != NULL) {
+            int vid;
+            struct port_data *port = sh_node->data;
+            ds_put_format(ds, "Port %s:\n", port->name);
+            ds_put_format(ds, "  VLAN_mode=%s, native_VID=%d, trunk_all_VLANs=%s\n",
+                          vlan_mode_to_str(port->vlan_mode), port->native_vid,
+                          (port->trunk_all_vlans ? "true" : "false"));
+            ds_put_format(ds, "  VLANs:");
+            BITMAP_FOR_EACH_1(vid, VLAN_BITMAP_SIZE, port->vlans_bitmap) {
+                ds_put_format(ds, " %d,", vid);
+            }
+            ds_put_format(ds, "\n");
         }
-        ds_put_format(ds, "\n");
     }
 
     ds_put_cstr(ds, "================ VLANs ================\n");
@@ -344,63 +346,68 @@ update_port_cache(void)
 
     /* Add new ports. */
     SHASH_FOR_EACH(sh_node, &sh_idl_ports) {
-        struct port_data *new_port = shash_find_data(&all_ports, sh_node->name);
-        /* note: "bridge_normal" is not really a port, ignore it */
-        if (!new_port && strcmp(sh_node->name, DEFAULT_BRIDGE_NAME) != 0) {
-            VLOG_DBG("Found an added port %s", sh_node->name);
-            add_new_port(sh_node->data);
+        if (sh_node != NULL) {
+            struct port_data *new_port = shash_find_data(&all_ports, sh_node->name);
+            /* note: "bridge_normal" is not really a port, ignore it */
+            if (!new_port && strcmp(sh_node->name, DEFAULT_BRIDGE_NAME) != 0) {
+                VLOG_DBG("Found an added port %s", sh_node->name);
+                add_new_port(sh_node->data);
+            }
         }
     }
 
     /* Check for changes in the port row entries. */
     SHASH_FOR_EACH(sh_node, &all_ports) {
-        const struct ovsrec_port *row = shash_find_data(&sh_idl_ports,
+        if (sh_node != NULL) {
+
+            const struct ovsrec_port *row = shash_find_data(&sh_idl_ports,
                                                         sh_node->name);
-        /* Check for changes to row. */
-        if (OVSREC_IDL_IS_ROW_INSERTED(row, idl_seqno) ||
-            OVSREC_IDL_IS_ROW_MODIFIED(row, idl_seqno)) {
-            struct port_data *port = sh_node->data;
-            unsigned long *modified_vlans;
-            int vid;
+            /* Check for changes to row. */
+            if (OVSREC_IDL_IS_ROW_INSERTED(row, idl_seqno) ||
+                OVSREC_IDL_IS_ROW_MODIFIED(row, idl_seqno)) {
+                struct port_data *port = sh_node->data;
+                unsigned long *modified_vlans;
+                int vid;
 
-            VLOG_DBG("Received updates for port %s", row->name);
+                VLOG_DBG("Received updates for port %s", row->name);
 
-            /* Save old VLAN bitmap first.  If this is a new port,
-             * go ahead and allocate a blank bitmap for use later. */
-            modified_vlans = port->vlans_bitmap;
-            if (modified_vlans == NULL) {
-                modified_vlans = bitmap_allocate(VLAN_BITMAP_SIZE);
-            }
+                /* Save old VLAN bitmap first.  If this is a new port,
+                * go ahead and allocate a blank bitmap for use later. */
+                modified_vlans = port->vlans_bitmap;
+                if (modified_vlans == NULL) {
+                    modified_vlans = bitmap_allocate(VLAN_BITMAP_SIZE);
+                }
 
-            /* Update bitmap of VLANs to which this PORT belongs. */
-            construct_vlan_bitmap(row, port);
+                /* Update bitmap of VLANs to which this PORT belongs. */
+                construct_vlan_bitmap(row, port);
 
-            /* Combine both new & old VLANs since we need to update
-             * all of their status. */
-            bitmap_or(modified_vlans, port->vlans_bitmap, VLAN_BITMAP_SIZE);
-            BITMAP_FOR_EACH_1(vid, VLAN_BITMAP_SIZE, modified_vlans) {
-                OVSREC_VLAN_FOR_EACH(vlanrow, idl) {
-                    if(vlanrow->id == vid) {
-                        struct vlan_data *vlan = vlan_lookup_by_vid(vid);
-                        if (vlan)  {
-                            update_vlan_membership(vlan);
-                            if (handle_vlan_config(vlan->idl_cfg, vlan)) {
-                                rc++;
+                /* Combine both new & old VLANs since we need to update
+                 * all of their status. */
+                bitmap_or(modified_vlans, port->vlans_bitmap, VLAN_BITMAP_SIZE);
+                BITMAP_FOR_EACH_1(vid, VLAN_BITMAP_SIZE, modified_vlans) {
+                    OVSREC_VLAN_FOR_EACH(vlanrow, idl) {
+                        if(vlanrow->id == vid) {
+                            struct vlan_data *vlan = vlan_lookup_by_vid(vid);
+                            if (vlan)  {
+                                update_vlan_membership(vlan);
+                                if (handle_vlan_config(vlan->idl_cfg, vlan)) {
+                                    rc++;
+                                }
                             }
                         }
                     }
                 }
-           }
 
-            /* Done. */
-            bitmap_free(modified_vlans);
+                /* Done. */
+                bitmap_free(modified_vlans);
+            }
         }
     }
 
-    /* Destroy the shash of the IDL ports */
-    shash_destroy(&sh_idl_ports);
+        /* Destroy the shash of the IDL ports */
+        shash_destroy(&sh_idl_ports);
 
-    return rc;
+        return rc;
 
 } /* update_port_cache */
 
