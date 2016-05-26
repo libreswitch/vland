@@ -1,5 +1,5 @@
 /*
- *Copyright (C) 2015 Hewlett-Packard Development Company, L.P.
+ *Copyright (C) 2015-2016 Hewlett-Packard Development Company, L.P.
  *All Rights Reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -283,7 +283,7 @@ add_new_port(const struct ovsrec_port *port_row)
 
         /* Initialize VLANs to NULL for now. */
         new_port->native_vid = -1;
-        new_port->vlans_bitmap = NULL;
+        new_port->vlans_bitmap = bitmap_allocate(VLAN_BITMAP_SIZE);
         new_port->trunk_all_vlans = false;
         new_port->vlan_mode = PORT_VLAN_MODE_ACCESS;
 
@@ -374,9 +374,6 @@ update_port_cache(void)
                 /* Save old VLAN bitmap first.  If this is a new port,
                 * go ahead and allocate a blank bitmap for use later. */
                 modified_vlans = port->vlans_bitmap;
-                if (modified_vlans == NULL) {
-                    modified_vlans = bitmap_allocate(VLAN_BITMAP_SIZE);
-                }
 
                 /* Update bitmap of VLANs to which this PORT belongs. */
                 construct_vlan_bitmap(row, port);
