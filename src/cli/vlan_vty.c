@@ -23,7 +23,7 @@
  * @file vlan_vty.c
  * vlan internal range <min_vlan> <max_vlan> (ascending|descending)
  * no vlan internal range
- * show vlan internal
+ * shoi vlan internal
  ***************************************************************************/
 
 #include "vtysh/zebra.h"
@@ -2889,6 +2889,7 @@ DEFUN(cli_show_vlan_id,
     const struct ovsrec_port *port_row = NULL;
     int vlan_id = atoi((char*) argv[0]);
     int i = 0;
+    const char *l3_port;
 
     vlan_row = ovsrec_vlan_first(idl);
     if (vlan_row == NULL)
@@ -2964,6 +2965,12 @@ DEFUN(cli_show_vlan_id,
                 }
             }
         }
+
+        if ((l3_port = smap_get(&vlan_row->internal_usage, VLAN_INTERNAL_USAGE_L3PORT)) != NULL)
+            {
+                vty_out(vty, "%s", l3_port);
+            }
+
     }
 
     vty_out(vty, "%s", VTY_NEWLINE);
