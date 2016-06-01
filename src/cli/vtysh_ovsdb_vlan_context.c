@@ -47,13 +47,13 @@ vtysh_vlan_context_init(void *p_private)
    const struct shash_node **nodes;
    struct feature_sorted_list *sorted_list = NULL;
    int count;
-   char vlan_id_str[15];
+   char vlan_id_str[VLAN_ID_LEN];
 
    shash_init(&sorted_vlan_id);
 
    OVSREC_VLAN_FOR_EACH(vlan_row, p_msg->idl)
    {
-       sprintf(vlan_id_str, "%ld", vlan_row->id);
+       snprintf(vlan_id_str, VLAN_ID_LEN, "%ld", vlan_row->id);
        shash_add(&sorted_vlan_id, vlan_id_str, (void *)vlan_row);
    }
 
