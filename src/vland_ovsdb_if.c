@@ -390,6 +390,12 @@ update_port_cache(void)
                             struct vlan_data *vlan = vlan_lookup_by_vid(vid);
                             if (vlan)  {
                                 update_vlan_membership(vlan);
+                                if (smap_get(&vlanrow->internal_usage,
+                                    VLAN_INTERNAL_USAGE_L3PORT)) {
+                                    VLOG_DBG("%s is used internally for L3 interface."
+                                             "Skip config", vlanrow->name);
+                                    continue;
+                                }
                                 if (handle_vlan_config(vlan->idl_cfg, vlan)) {
                                     rc++;
                                 }
