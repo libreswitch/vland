@@ -533,9 +533,11 @@ vlan_lookup_by_vid(int vid)
     struct shash_node *sh_node;
 
     SHASH_FOR_EACH(sh_node, &all_vlans) {
-        struct vlan_data *vlan = sh_node->data;
-        if (vlan->vid == vid) {
-            return vlan;
+        if(sh_node != NULL) {
+            struct vlan_data *vlan = sh_node->data;
+            if (vlan->vid == vid) {
+                return vlan;
+            }
         }
     }
     return NULL;
