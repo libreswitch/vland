@@ -175,10 +175,17 @@ def test_vlan_0(topology, step, setup):
     add_vlan(ops1, "200", "200")
 
     step("Step 2- Add port referencing vlan 200")
-    add_port(ops1, PORT_1, vlan_mode="access", tag="200")
+    ops1("conf t")
+    ops1("interface 1")
+    ops1("no routing")
+    ops1("vlan access 200")
 
     step("Step 3- Delete port")
-    delete_port(ops1, PORT_1)
+    ops1("routing")
+    ops1("exit")
+    ops1("vlan 200")
+    ops1("shutdown")
+    ops1("exit")
 
     step("Step 4- Verify vlan is down (admin_down)")
     verify_data(get_vlan(ops1, "200"), "{}", "down", "admin_down")
@@ -190,10 +197,14 @@ def test_vlan_0(topology, step, setup):
     verify_data(get_vlan(ops1, "200"), "{}", "down", "no_member_port")
 
     step("Step 7- Add port referencing vlan 200")
-    add_port(ops1, PORT_1, vlan_mode="trunk", trunks="200")
+    ops1("interface 1")
+    ops1("no routing")
+    ops1("vlan trunk allowed 200")
 
     step("Step 8- Verify vlan is up (ok) and enabled")
     verify_data(get_vlan(ops1, "200"), '{enable=true}', "up", "ok")
+
+    ops1("routing")
 
 
 def test_vlan_a(topology, step, setup):
@@ -208,7 +219,11 @@ def test_vlan_a(topology, step, setup):
         add_vlan(ops1, vlan, vlan)
 
     step("Step 2- Add port referencing vlan 100")
-    add_port(ops1, PORT_1, vlan_mode="access", tag=vlans[0])
+    ops1("conf t")
+    ops1("interface 1")
+    ops1("no routing")
+    ops1("vlan access 100")
+    ops1("exit")
 
     step("Step 3- Verify vlan state down (admin_down")
     for vlan in vlans:
@@ -255,7 +270,11 @@ def test_vlan_c(topology, step, setup):
     verify_data(get_vlan(ops1, vlans[1]), "{}", "down", "no_member_port")
 
     step("Step 4- Add port referencing vlan 200")
-    add_port(ops1, PORT_1, vlan_mode="access", tag=vlans[1])
+    ops1("conf t")
+    ops1("interface 1")
+    ops1("no routing")
+    ops1("vlan access 200")
+    ops1("exit")
 
     step("Step 5- Verify vlan 200 up (ok)")
     verify_data(get_vlan(ops1, vlans[1]), '{enable=true}', "up", "ok")
@@ -266,6 +285,9 @@ def test_vlan_c(topology, step, setup):
     step("Step 7- Verify vlan 200 down (admin_down)")
     verify_data(get_vlan(ops1, vlans[1]), "{}", "down", "admin_down")
 
+    ops1("interface 1")
+    ops1("routing")
+    ops1("exit")
 
 def test_vlan_d(topology, step, setup):
     ops1 = topology.get('ops1')
@@ -287,14 +309,20 @@ def test_vlan_d(topology, step, setup):
         verify_data(get_vlan(ops1, vlan), "{}", "down", "no_member_port")
 
     step("Step 4- Add port referencing vlans 100, 200, 300")
-    add_port(ops1, PORT_1, vlan_mode="trunk", tag="100", trunks="100,200,300")
+    ops1("conf t")
+    ops1("interface 1")
+    ops1("no routing")
+    ops1("vlan access 100")
+    ops1("vlan trunk allowed 100")
+    ops1("vlan trunk allowed 200")
+    ops1("vlan trunk allowed 300")
 
     step("Step 5- Verify vlan state up (ok)")
     for vlan in vlans:
         verify_data(get_vlan(ops1, vlan), '{enable=true}', "up", "ok")
 
     step("Step 6- Remove vlan 200 from port")
-    set_port_vlans(ops1, PORT_1, "100,300")
+    ops1("no vlan trunk allowed 200")
 
     step("Step 7- Verify vlan 100, 300 state up (ok)")
     verify_data(get_vlan(ops1, vlans[0]), '{enable=true}', "up", "ok")
@@ -302,3 +330,7 @@ def test_vlan_d(topology, step, setup):
 
     step("Step 8-  Verify vlan 200 state down (no_member_port)")
     verify_data(get_vlan(ops1, vlans[1]), "{}", "down", "no_member_port")
+
+    ops1("no vlan trunk allowed 100")
+    ops1("no vlan trunk allowed 300")
+    ops1("routing")

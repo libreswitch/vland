@@ -39,7 +39,7 @@ set (SOURCES ${SRC_DIR}/vland.c ${SRC_DIR}/vland_ovsdb_if.c)
 add_executable (${VLAND} ${SOURCES})
 
 target_link_libraries (${VLAND} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES}
-                       -lpthread -lrt -lsupportability)
+                       -lpthread -lrt -lsupportability -lopsutils)
 
 # Build ops-intfd cli shared libraries.
 add_subdirectory(src/cli)

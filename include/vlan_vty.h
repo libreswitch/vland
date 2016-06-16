@@ -27,6 +27,8 @@
 #ifndef _VLAN_VTY_H
 #define _VLAN_VTY_H
 
+#include "ops-utils.h"
+
 /* vlan length + 1 */
 #define VLAN_ID_LEN 5
 

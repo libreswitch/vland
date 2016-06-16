@@ -26,6 +26,8 @@
 #ifndef VTYSH_OVSDB_VLAN_CONTEXT_H
 #define VTYSH_OVSDB_VLAN_CONTEXT_H
 
+#include "ops-utils.h"
+
 vtysh_ret_val vtysh_vlan_context_clientcallback(void *p_private);
 struct feature_sorted_list * vtysh_vlan_context_init(void *p_private);
 void vtysh_vlan_context_exit(struct feature_sorted_list * head);
