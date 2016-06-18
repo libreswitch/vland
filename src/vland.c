@@ -57,6 +57,7 @@
 #include <openswitch-idl.h>
 #include <hash.h>
 #include <shash.h>
+#include  <diag_dump.h>
 
 #include "vland.h"
 
@@ -82,6 +83,9 @@ vland_init(const char *db_path)
 {
     /* Initialize IDL through a new connection to the DB. */
     vland_ovsdb_init(db_path);
+
+    /* Initialize diagnostic dump for l2vlan */
+    INIT_DIAG_DUMP_BASIC(l2vlan_diag_dump_callback);
 
     /* Register ovs-appctl commands for this daemon. */
     unixctl_command_register("ops-vland/dump", "", 0, 0, vland_unixctl_dump, NULL);

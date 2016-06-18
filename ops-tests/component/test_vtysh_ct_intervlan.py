@@ -195,15 +195,15 @@ def test_intervlan_cli(topology, step):
     sw1('interface vlan 2')
     sw1('ipv6 address 2002::1/120')
     sw1('ip address 10.1.1.1/8')
-    sw1('ip address 10.1.1.3/8 secondary')
-    sw1('ipv6 address 2002::2/120 secondary')
+    sw1('ip address 11.1.1.3/8 secondary')
+    sw1('ipv6 address 3002::2/120 secondary')
 
     sw1('interface vlan 3')
     ret = sw1('do show running-config')
     assert 'ip address 10.1.1.1/8' in ret and \
-        'ip address 10.1.1.3/8 secondary' in ret and \
+        'ip address 11.1.1.3/8 secondary' in ret and \
         'ipv6 address 2002::1/120' in ret and \
-        'ipv6 address 2002::2/120 secondary' in ret, \
+        'ipv6 address 3002::2/120 secondary' in ret, \
         'Show running config for interface vlan2 failed'
 
     assert 'no shutdown' in ret, 'Show running ' \
