@@ -37,6 +37,7 @@
 #include <shash.h>
 #include <bitmap.h>
 #include <vlan-bitmap.h>
+#include "vland.h"
 
 VLOG_DEFINE_THIS_MODULE(vland_ovsdb_if);
 
@@ -143,6 +144,27 @@ vland_debug_dump(struct ds *ds)
     }
 
 } /* vland_debug_dump */
+
+void
+l2vlan_diag_dump_callback(const char *feature , char **buf)
+{
+    struct ds ds = DS_EMPTY_INITIALIZER;
+
+    if (!strncmp(feature, L2VLAN, strlen(L2VLAN))) {
+        vland_debug_dump(&ds);
+    }
+
+    *buf = xcalloc(1, ds.length);
+    if (*buf) {
+        VLOG_INFO("diag-dump ds.length = %lu", ds.length);
+        snprintf(*buf, ds.length, "%s", ds_cstr(&ds));
+    } else {
+        VLOG_ERR("Memory allocation failed for feature %s , %lu bytes",
+                feature , ds.length);
+    }
+    ds_destroy(&ds);
+    return ;
+}
 
 /**********************************************************************/
 /*                              Ports                                 */

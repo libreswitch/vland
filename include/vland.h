@@ -167,6 +167,16 @@ extern void vland_ovsdb_exit(void);
  *****************************************************************************/
 extern void vland_debug_dump(struct ds *ds);
 
+/**************************************************************************//**
+ * @details This function is called when user invokes diagnostic dump for l2vlan
+ * Prints ops-vland debug dump information to the console along with other
+ * l2vlan information.
+ * @param[in] feature - contains feature name
+ * @param[in] buf - dynamic string into which the output data is written.
+ *****************************************************************************/
+extern void l2vlan_diag_dump_callback(const char *feature , char **buf);
+
+#define L2VLAN "l2vlan"
 #endif /* __VLAND_H__ */
 
 /** @} end of group ops-vland */
