@@ -198,6 +198,7 @@ DEFUN (vtysh_interface_vlan,
                vty->node = CONFIG_NODE;
                return CMD_ERR_NOTHING_TODO;
            }
+
            VLOG_DBG("%s Created vlan interface = %s\n", __func__, vlan_if);
 
            vty->index = vlan_if;
@@ -206,7 +207,7 @@ DEFUN (vtysh_interface_vlan,
    }
 
    vty_out(vty, "VLAN %d should be created before creating "
-                 "interface VLAN%d.%s",vlan_id, vlan_id, VTY_NEWLINE);
+                "interface VLAN%d.%s",vlan_id, vlan_id, VTY_NEWLINE);
    vty->node = CONFIG_NODE;
    return CMD_ERR_NOTHING_TODO;
 }
@@ -501,21 +502,21 @@ DEFUN(vtysh_no_vlan,
                     ovsrec_port_set_vlan_mode(port_row, OVSREC_PORT_VLAN_MODE_TRUNK);
                     ovsrec_port_set_tag(port_row, tag, tag_count);
                 } else {
-                      OVSREC_INTERFACE_FOR_EACH(ifrow, idl) {
-                         if (strcmp(ifrow->name, port_row->name) == 0) {
-                              break;
-                         }
-                      }
-                      if ((ifrow != NULL) &&
-                         (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) == 0)) {
-                          ovsrec_port_set_vlan_mode(port_row, OVSREC_PORT_VLAN_MODE_ACCESS);
-                          tag = xmalloc(sizeof *port_row->tag);
-                          tag_count = 1;
-                          tag[0] = DEFAULT_VLAN;
-                          ovsrec_port_set_tag(port_row, tag, tag_count);
-                          free(tag);
-                      }
-                  }
+                    OVSREC_INTERFACE_FOR_EACH(ifrow, idl) {
+                        if (strcmp(ifrow->name, port_row->name) == 0) {
+                            break;
+                        }
+                    }
+                    if ((ifrow != NULL) &&
+                       (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) == 0)) {
+                       ovsrec_port_set_vlan_mode(port_row, OVSREC_PORT_VLAN_MODE_ACCESS);
+                       tag = xmalloc(sizeof *port_row->tag);
+                       tag_count = 1;
+                       tag[0] = DEFAULT_VLAN;
+                       ovsrec_port_set_tag(port_row, tag, tag_count);
+                       free(tag);
+                    }
+                }
             }
             vlan_found = 0;
         }
@@ -1844,6 +1845,7 @@ DEFUN(cli_intf_no_vlan_trunk_native,
         vty_out(vty, OVSDB_INTF_VLAN_REMOVE_TRUNK_NATIVE_ERROR, VTY_NEWLINE);
         return CMD_SUCCESS;
     }
+    free(tag);
 }
 
 DEFUN(cli_intf_vlan_trunk_native_tag,
@@ -2617,6 +2619,7 @@ DEFUN(cli_lag_no_vlan_trunk_native,
         vty_out(vty, OVSDB_INTF_VLAN_REMOVE_TRUNK_NATIVE_ERROR, VTY_NEWLINE);
         return CMD_SUCCESS;
     }
+    free(tag);
 }
 
 DEFUN(cli_lag_vlan_trunk_native_tag,
