@@ -22,6 +22,7 @@ OpenSwitch Test for switchd related configurations.
 # from pytest import set_trace
 # from time import sleep
 import re
+from pytest import mark
 
 TOPOLOGY = """
 # +-------+
@@ -539,6 +540,7 @@ def novlantrunkallowed(dut):
     dut('end')
 
 
+@mark.gate
 def test_vtysh_ct_vlan(topology, step):
     ops1 = topology.get('ops1')
     assert ops1 is not None

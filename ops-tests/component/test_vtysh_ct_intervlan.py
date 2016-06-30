@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from pytest import mark
+
 TOPOLOGY = """
 #
 # +-------+
@@ -25,6 +27,7 @@ TOPOLOGY = """
 """
 
 
+@mark.gate
 def test_intervlan_cli(topology, step):
     error_str_range = "Vlanid outside valid vlan range <1-4094>"
     error_str = "Unknown command."

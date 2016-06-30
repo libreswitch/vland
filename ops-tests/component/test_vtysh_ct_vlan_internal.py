@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from pytest import mark
+
 TOPOLOGY = """
 #
 # +-------+
@@ -25,6 +27,7 @@ TOPOLOGY = """
 """
 
 
+@mark.gate
 def test_vlan_internal_cli(topology, step):
     step("### VLAN CLI validations ###")
     sw1 = topology.get('sw1')
