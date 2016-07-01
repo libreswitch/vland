@@ -883,8 +883,6 @@ vland_ovsdb_init(const char *db_path)
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_name);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_vlan_mode);
-    ovsdb_idl_add_column(idl, &ovsrec_port_col_tag);
-    ovsdb_idl_add_column(idl, &ovsrec_port_col_trunks);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_vlan_tag);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_vlan_trunks);
 
