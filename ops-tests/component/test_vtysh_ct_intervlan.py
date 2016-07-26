@@ -182,6 +182,8 @@ def test_intervlan_cli(topology, step):
         'Failed to delete vlan interface in DB'
 
     # Checking multiple interfaces add and delete
+    sw1('end')
+    sw1('config terminal')
     sw1('interface vlan 1')
     sw1('interface vlan 2')
     sw1('vlan 3')
